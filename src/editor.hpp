@@ -1,6 +1,8 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
+#include "raylib.h"
+
 /**
  * @brief The application class that represents the application.
  * @details The application class is used to represent the application. It

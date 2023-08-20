@@ -9,7 +9,6 @@
 
 #include "clip.h"
 #include "constants.hpp"
-#include "raylib.h"
 #include "utils.hpp"
 
 static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
