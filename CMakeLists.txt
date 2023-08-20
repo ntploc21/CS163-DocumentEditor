@@ -38,11 +38,17 @@ endif()
 # Include libraries and source files
 include_directories(src)
 add_executable(${PROJECT_NAME}
-src/main.cpp
+    src/main.cpp
+    src/utils.cpp
 
-src/editor.cpp
+    src/editor.cpp
 
-src/utils.cpp
+    src/rope/node.cpp
+    src/rope/node_leaf.cpp
+    src/rope/node_concatenation.cpp
+    src/rope/rope.cpp
+    src/rope/utils.cpp
+
 
 )
 
