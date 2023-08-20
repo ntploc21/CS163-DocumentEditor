@@ -7,10 +7,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
 
+# Disable clip examples and tests
+set(CLIP_EXAMPLES OFF CACHE BOOL "Compile clip examples")
+set(CLIP_TESTS OFF CACHE BOOL "Compile clip tests")
+
 ######################################
 
 # Raylib
-set(RAYLIB_VERSION 4.2.0)
+set(RAYLIB_VERSION 4.5.0)
 find_package(raylib ${RAYLIB_VERSION} QUIET) # QUIET or REQUIRED
 if (NOT raylib_FOUND) # Fetch/download and build raylib
     include(FetchContent)
@@ -34,14 +38,23 @@ endif()
 # Include libraries and source files
 include_directories(src)
 add_executable(${PROJECT_NAME}
-    src/main.cpp
+src/main.cpp
 
-    src/editor.cpp
+src/editor.cpp
+
+src/utils.cpp
 
 )
 
+# In case that you have ${PNG_LIBRARY} set to support copy/paste images on Linux
+#set(CLIP_X11_PNG_LIBRARY "${PNG_LIBRARY}")
+
+# Add clip subdirectory to compile the library
+add_subdirectory(clip)
+
 target_link_libraries(${PROJECT_NAME} raylib)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC include)
+target_link_libraries(${PROJECT_NAME} clip)
 
 # Copy assets to build folder
 

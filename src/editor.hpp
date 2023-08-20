@@ -63,6 +63,7 @@ private:
 
 private:
     bool closed = false;
+    Font font;
 };
 
 #endif  // EDITOR_HPP
