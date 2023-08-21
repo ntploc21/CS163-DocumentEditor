@@ -9,6 +9,7 @@
 
 #include "clip.h"
 #include "constants.hpp"
+#include "rope/rope.hpp"
 #include "utils.hpp"
 
 static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
@@ -65,33 +66,35 @@ void Editor::Render() {
     EndDrawing();
 }
 
-// std::vector< int > s;
+std::vector< int > s;
 // std::string tmp;
+Rope tmp;
 
 void Editor::Update([[maybe_unused]] float dt) {
-    // int key = GetCharPressed();
-    // int _key = GetKeyPressed();
+    int key = GetCharPressed();
 
-    // if (key) {
-    //     if (key >= 128) s.pop_back();
-    //     s.push_back(key);
-    // }
+    if (key) {
+        if (key >= 128) s.pop_back();
+        s.push_back(key);
+        if (key >= 128) tmp = tmp.erase(tmp.length() - 1, 1);
+        tmp = tmp.append(nstring(nchar(key)));
+    }
 
-    // std::string tmpS = "";
-    // if (s.size()) {
-    //     for (int i = 0; i < s.size(); i++) {
-    //         tmpS += utils::unicodeToChar(s[i]);
-    //     }
-    // }
+    nstring tmpS;
+    if (s.size()) {
+        for (std::size_t i = 0; i < s.size(); i++) {
+            tmpS += nchar(s[i]);
+        }
+    }
 
-    // DrawTextEx(font, tmpS.c_str(), {0, 100}, 72, 0, WHITE);
+    DrawTextEx(font, tmpS.c_str(), {0, 100}, 72, 0, WHITE);
 
     // if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V) &&
     //     clip::has(clip::text_format())) {
     //     tmp.clear();
     //     clip::get_text(tmp);
     // }
-    // DrawTextEx(font, tmp.c_str(), {0, 0}, 72, 0, WHITE);
+    DrawTextEx(font, tmp.to_string().c_str(), {0, 0}, 72, 0, WHITE);
 }
 
 void Editor::LoadResources() {

@@ -8,8 +8,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
 
 # Disable clip examples and tests
-set(CLIP_EXAMPLES OFF CACHE BOOL "Compile clip examples")
-set(CLIP_TESTS OFF CACHE BOOL "Compile clip tests")
+# set(CLIP_EXAMPLES OFF CACHE BOOL "Compile clip examples")
+# set(CLIP_TESTS OFF CACHE BOOL "Compile clip tests")
 
 ######################################
 
@@ -47,7 +47,7 @@ add_executable(${PROJECT_NAME}
     src/rope/rope.cpp
     src/rope/utils.cpp
 
-    src/document.cpp
+    # src/document.cpp
     src/text/nchar.cpp
     src/text/nstring.cpp
     src/text/utils.cpp
@@ -55,26 +55,30 @@ add_executable(${PROJECT_NAME}
 
 ######################################
 # Testing
-# add_executable(rope_test
-#     src/rope/test.cpp
+add_executable(rope_test
+    src/rope/test.cpp
 
-#     src/rope/node.cpp
-#     src/rope/node_leaf.cpp
-#     src/rope/node_concatenation.cpp
-#     src/rope/rope.cpp
-#     src/rope/utils.cpp
-# )
+    src/rope/node.cpp
+    src/rope/node_leaf.cpp
+    src/rope/node_concatenation.cpp
+    src/rope/rope.cpp
+    src/rope/utils.cpp
+
+    src/text/nchar.cpp
+    src/text/nstring.cpp
+    src/text/utils.cpp
+)
 # target_compile_options(rope_test PRIVATE -Wall -Wextra -pedantic -Werror -Wfatal-errors)
 
 # In case that you have ${PNG_LIBRARY} set to support copy/paste images on Linux
 #set(CLIP_X11_PNG_LIBRARY "${PNG_LIBRARY}")
 
 # Add clip subdirectory to compile the library
-add_subdirectory(clip)
+# add_subdirectory(clip)
 
 target_link_libraries(${PROJECT_NAME} raylib)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC include)
-target_link_libraries(${PROJECT_NAME} clip)
+# target_link_libraries(${PROJECT_NAME} clip)
 
 # target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror -Wfatal-errors)
 

@@ -1,21 +1,21 @@
 #include "text/nchar.hpp"
 
-NChar::NChar() {}
+nchar::nchar() {}
 
-NChar::NChar(const NChar& other)
-    : mCodepoint(other.mCodepoint), mType(other.mType) {}
+nchar::nchar(const nchar& other)
+    : mCodepoint{other.mCodepoint}, mType{other.mType} {}
 
-NChar::NChar(const char* c) { *this = c; }
+nchar::nchar(const char* c) { *this = c; }
 
-NChar::NChar(int codepoint) : mCodepoint(codepoint) {}
+nchar::nchar(int codepoint) : mCodepoint{codepoint} {}
 
-NChar& NChar::operator=(const NChar& other) {
+nchar& nchar::operator=(const nchar& other) {
     mCodepoint = other.mCodepoint;
     mType = other.mType;
     return *this;
 }
 
-NChar& NChar::operator=(const char* c) {
+nchar& nchar::operator=(const char* c) {
     int unicode = 0;
     int i = 0;
     int len = 0;
@@ -49,15 +49,15 @@ NChar& NChar::operator=(const char* c) {
     return *this;
 }
 
-bool NChar::operator==(const NChar& other) const {
+bool nchar::operator==(const nchar& other) const {
     return mCodepoint == other.mCodepoint && mType == other.mType;
 }
 
-bool NChar::operator!=(const NChar& other) const { return !(*this == other); }
+bool nchar::operator!=(const nchar& other) const { return !(*this == other); }
 
-int NChar::codepoint() const { return mCodepoint; }
+int nchar::codepoint() const { return mCodepoint; }
 
-const char* NChar::getChar() const {
+const char* nchar::getChar() const {
     char* c;
     int unicode = mCodepoint;
 
@@ -88,49 +88,48 @@ const char* NChar::getChar() const {
     return c;
 }
 
-std::ostream& operator<<(std::ostream& os, const NChar& nchar) {
+std::ostream& operator<<(std::ostream& os, const nchar& nchar) {
     os << nchar.getChar();
     return os;
 }
 
 #define MASK(i) (1LL << (i))
-using namespace nchar;
 
-NChar& NChar::toggleBold() {
+nchar& nchar::toggleBold() {
     mType ^= MASK(Bold);
     return *this;
 }
 
-NChar& NChar::toggleItalic() {
+nchar& nchar::toggleItalic() {
     mType ^= MASK(Italic);
     return *this;
 }
 
-NChar& NChar::toggleUnderline() {
+nchar& nchar::toggleUnderline() {
     mType ^= MASK(Underline);
     return *this;
 }
 
-NChar& NChar::toggleStrikethrough() {
+nchar& nchar::toggleStrikethrough() {
     mType ^= MASK(Strikethrough);
     return *this;
 }
 
-NChar& NChar::toggleSubscript() {
+nchar& nchar::toggleSubscript() {
     mType ^= MASK(Subscript);
     return *this;
 }
 
-NChar& NChar::toggleSuperscript() {
+nchar& nchar::toggleSuperscript() {
     mType ^= MASK(Superscript);
     return *this;
 }
 
-NChar& NChar::toggleType(Type type) {
+nchar& nchar::toggleType(Type type) {
     mType ^= MASK(type);
     return *this;
 }
 
-bool NChar::getType() const { return mType; }
+bool nchar::getType() const { return mType; }
 
 #undef MASK

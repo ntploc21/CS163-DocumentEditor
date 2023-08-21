@@ -2,8 +2,6 @@
 #define ROPE_ROPE_HPP
 
 #include "rope/node.hpp"
-#include "rope/node_concatenation.hpp"
-#include "rope/node_leaf.hpp"
 
 class Rope {
 private:
@@ -15,31 +13,34 @@ public:
     using Ptr = std::shared_ptr< Node >;
 
     Rope();
-    Rope(const std::string& text);
+    Rope(const nstring& text);
     Rope(const Rope& other) = default;
+    ~Rope() = default;
     Rope(Ptr root);
 
     std::string to_string() const;
+    nstring to_nstring() const;
     std::size_t length() const;
-    char operator[](std::size_t index) const;
+    nchar operator[](std::size_t index) const;
     std::string substr(std::size_t start, std::size_t length) const;
+    nstring subnstr(std::size_t start, std::size_t length) const;
 
     bool is_balanced() const;
     [[nodiscard]] Rope rebalance() const;
 
-    [[nodiscard]] Rope insert(std::size_t index, const std::string& text) const;
+    [[nodiscard]] Rope insert(std::size_t index, const nstring& text) const;
     [[nodiscard]] Rope insert(std::size_t index, const Rope& other) const;
 
-    [[nodiscard]] Rope append(const std::string& text) const;
+    [[nodiscard]] Rope append(const nstring& text) const;
     [[nodiscard]] Rope append(const Rope& other) const;
 
-    [[nodiscard]] Rope prepend(const std::string& text) const;
+    [[nodiscard]] Rope prepend(const nstring& text) const;
     [[nodiscard]] Rope prepend(const Rope& other) const;
 
     [[nodiscard]] Rope erase(std::size_t start, std::size_t length) const;
 
     [[nodiscard]] Rope replace(std::size_t start, std::size_t length,
-                               const std::string& text) const;
+                               const nstring& text) const;
     [[nodiscard]] Rope replace(std::size_t start, std::size_t length,
                                const Rope& other) const;
 

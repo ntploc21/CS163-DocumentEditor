@@ -2,22 +2,23 @@
 
 #include <stdexcept>
 
-#include "rope.hpp"
 #include "rope/utils.hpp"
 
 using namespace rope;
 
-Rope::Rope() : Rope("") {}
+Rope::Rope() : Rope{""} {}
 
-Rope::Rope(const std::string& text) : mRoot(std::make_shared< Leaf >(text)) {}
+Rope::Rope(const nstring& text) : mRoot{std::make_shared< Leaf >(text)} {}
 
-Rope::Rope(Ptr root) : mRoot(std::move(root)) {}
+Rope::Rope(Ptr root) : mRoot{std::move(root)} {}
 
 std::string Rope::to_string() const { return mRoot->to_string(); }
 
+nstring Rope::to_nstring() const { return mRoot->to_nstring(); }
+
 std::size_t Rope::length() const { return mRoot->length(); }
 
-char Rope::operator[](std::size_t index) const {
+nchar Rope::operator[](std::size_t index) const {
     if (index > length()) throw std::out_of_range("Index out of range");
     if (index == length()) return '\0';
     return mRoot->operator[](index);
@@ -25,6 +26,10 @@ char Rope::operator[](std::size_t index) const {
 
 std::string Rope::substr(std::size_t start, std::size_t length) const {
     return mRoot->substr(start, length);
+}
+
+nstring Rope::subnstr(std::size_t start, std::size_t length) const {
+    return mRoot->subnstr(start, length);
 }
 
 // will implement later
@@ -41,7 +46,7 @@ Rope Rope::rebalance() const {
     return merge(leaves);
 }
 
-Rope Rope::insert(std::size_t index, const std::string& text) const {
+Rope Rope::insert(std::size_t index, const nstring& text) const {
     return insert(index, Rope(text));
 }
 
@@ -54,15 +59,13 @@ Rope Rope::insert(std::size_t index, const Rope& other) const {
     return left.append(other).append(right);
 }
 
-Rope Rope::append(const std::string& text) const { return append(Rope(text)); }
+Rope Rope::append(const nstring& text) const { return append(Rope(text)); }
 
 Rope Rope::append(const Rope& other) const {
     return Rope(std::make_shared< Concatenation >(mRoot, other.mRoot));
 }
 
-Rope Rope::prepend(const std::string& text) const {
-    return prepend(Rope(text));
-}
+Rope Rope::prepend(const nstring& text) const { return prepend(Rope(text)); }
 
 Rope Rope::prepend(const Rope& other) const {
     return Rope(std::make_shared< Concatenation >(other.mRoot, mRoot));
@@ -75,7 +78,7 @@ Rope Rope::erase(std::size_t start, std::size_t length) const {
 }
 
 Rope Rope::replace(std::size_t start, std::size_t length,
-                   const std::string& text) const {
+                   const nstring& text) const {
     return replace(start, length, Rope(text));
 }
 

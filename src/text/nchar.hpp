@@ -1,9 +1,11 @@
-#ifndef TEXT_NCHAR_HPP
-#define TEXT_NCHAR_HPP
+#ifndef TEXT_nchar_HPP
+#define TEXT_nchar_HPP
 
 #include <iostream>
 
-namespace nchar {
+// reimplement the char class in C++
+class nchar {
+public:
     enum Type {
         Bold = 0,
         Italic = 1,
@@ -13,34 +15,30 @@ namespace nchar {
         Superscript = 5,
         NumType = 6
     };
-}
 
-// reimplement the char class in C++
-class NChar {
-public:
-    NChar();
-    NChar(const NChar& other);
-    NChar(const char* c);
-    NChar(int codepoint);
+    nchar();
+    nchar(const nchar& other);
+    nchar(const char* c);
+    nchar(int codepoint);
 
-    NChar& operator=(const NChar& other);
-    NChar& operator=(const char* c);
-    bool operator==(const NChar& other) const;
-    bool operator!=(const NChar& other) const;
+    nchar& operator=(const nchar& other);
+    nchar& operator=(const char* c);
+    bool operator==(const nchar& other) const;
+    bool operator!=(const nchar& other) const;
 
     int codepoint() const;
     const char* getChar() const;
 
-    friend std::ostream& operator<<(std::ostream& os, const NChar& nchar);
+    friend std::ostream& operator<<(std::ostream& os, const nchar& nchar);
 
-    NChar& toggleBold();
-    NChar& toggleItalic();
-    NChar& toggleUnderline();
-    NChar& toggleStrikethrough();
-    NChar& toggleSubscript();
-    NChar& toggleSuperscript();
+    nchar& toggleBold();
+    nchar& toggleItalic();
+    nchar& toggleUnderline();
+    nchar& toggleStrikethrough();
+    nchar& toggleSubscript();
+    nchar& toggleSuperscript();
 
-    NChar& toggleType(nchar::Type type);
+    nchar& toggleType(nchar::Type type);
 
     bool getType() const;
 
@@ -49,4 +47,4 @@ private:
     int mType{};
 };
 
-#endif  // TEXT_NCHAR_HPP
+#endif  // TEXT_nchar_HPP
