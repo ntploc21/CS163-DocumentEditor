@@ -1,50 +1,55 @@
-#ifndef TEXT_NSTRING_HPP
-#define TEXT_NSTRING_HPP
+#ifndef TEXT_nstring_HPP
+#define TEXT_nstring_HPP
 
 #include <vector>
 
 #include "text/nchar.hpp"
 
-class NString {
+class nstring {
 public:
-    NString();
-    NString(const NString& other);
-    NString(const std::string& str);
+    nstring();
+    nstring(const nchar& other);
+    nstring(const nstring& other);
+    nstring(const std::string& str);
+    nstring(const char* str);
 
-    NString& operator=(const NString& other);
-    NString& operator=(const std::string& str);
-    bool operator==(const NString& other) const;
-    bool operator!=(const NString& other) const;
+    nstring& operator=(const char* str);
+    nstring& operator=(const nchar& other);
+    nstring& operator=(const nstring& other);
+    nstring& operator=(const std::string& str);
+    bool operator==(const nstring& other) const;
+    bool operator!=(const nstring& other) const;
 
-    NString& operator+=(const NString& other);
-    NString operator+(const NString& other) const;
+    nstring& operator+=(const nstring& other);
+    nstring operator+(const nstring& other) const;
 
-    NString& operator+=(const NChar& other);
-    NString operator+(const NChar& other) const;
+    nstring& operator+=(const nchar& other);
+    nstring operator+(const nchar& other) const;
 
-    NChar& operator[](int index);
-    const NChar& operator[](int index) const;
+    nchar& operator[](int index);
+    const nchar& operator[](int index) const;
 
     std::size_t length() const;
     std::string to_string() const;
     const char* c_str() const;
-    NString substr(std::size_t start, std::size_t length) const;
+    nstring substr(std::size_t start, std::size_t length) const;
+    nstring substr(std::size_t start) const;
 
-    friend std::ostream& operator<<(std::ostream& os, const NString& nstring);
+    friend std::ostream& operator<<(std::ostream& os, const nstring& nstring);
 
-    NString& toggleBold(std::size_t start, std::size_t length);
-    NString& toggleItalic(std::size_t start, std::size_t length);
-    NString& toggleUnderline(std::size_t start, std::size_t length);
-    NString& toggleStrikethrough(std::size_t start, std::size_t length);
-    NString& toggleSubscript(std::size_t start, std::size_t length);
-    NString& toggleSuperscript(std::size_t start, std::size_t length);
+    nstring& toggleBold(std::size_t start, std::size_t length);
+    nstring& toggleItalic(std::size_t start, std::size_t length);
+    nstring& toggleUnderline(std::size_t start, std::size_t length);
+    nstring& toggleStrikethrough(std::size_t start, std::size_t length);
+    nstring& toggleSubscript(std::size_t start, std::size_t length);
+    nstring& toggleSuperscript(std::size_t start, std::size_t length);
 
 private:
-    NString& toggleType(std::size_t start, std::size_t length,
+    nstring& toggleType(std::size_t start, std::size_t length,
                         nchar::Type type);
 
-    std::vector< NChar > mChars{};
+    std::vector< nchar > mChars{};
     std::size_t mLength{};
 };
 
-#endif  // TEXT_NSTRING_HPP
+#endif  // TEXT_nstring_HPP
