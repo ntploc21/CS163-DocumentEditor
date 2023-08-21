@@ -48,6 +48,9 @@ add_executable(${PROJECT_NAME}
     src/rope/utils.cpp
 
     src/document.cpp
+    src/text/nchar.cpp
+    src/text/nstring.cpp
+    src/text/utils.cpp
 )
 
 ######################################
