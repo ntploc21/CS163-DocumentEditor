@@ -68,7 +68,7 @@ void Editor::Render() {
 // std::vector< int > s;
 // std::string tmp;
 
-void Editor::Update(float dt) {
+void Editor::Update([[maybe_unused]] float dt) {
     // int key = GetCharPressed();
     // int _key = GetKeyPressed();
 

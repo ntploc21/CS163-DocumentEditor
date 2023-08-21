@@ -26,10 +26,10 @@ namespace rope {
         std::size_t depth() const;
 
     protected:
-        std::size_t mDepth = 0;
+        std::size_t mDepth{};
 
-        std::size_t mLength = 0;
-        std::size_t mWeight = 0;
+        std::size_t mLength{};
+        std::size_t mWeight{};
     };
 
 }  // namespace rope
