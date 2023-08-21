@@ -24,7 +24,7 @@ namespace rope {
         using Node::mLength;
         using Node::mWeight;
 
-        std::string mText;
+        std::string mText{};
     };
 
 }  // namespace rope

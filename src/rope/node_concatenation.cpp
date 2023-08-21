@@ -1,5 +1,7 @@
 #include "rope/node_concatenation.hpp"
 
+#include <cassert>
+
 namespace rope {
     Concatenation::Concatenation(const Node::Ptr& left, const Node::Ptr& right)
         : mLeft(std::move(left)), mRight(std::move(right)) {
@@ -15,6 +17,7 @@ namespace rope {
         : Concatenation(other.mLeft, other.mRight) {}
 
     char Concatenation::operator[](std::size_t index) const {
+        assert(index < mLength);
         if (index < mWeight) return mLeft->operator[](index);
         return mRight->operator[](index - mWeight);
     }

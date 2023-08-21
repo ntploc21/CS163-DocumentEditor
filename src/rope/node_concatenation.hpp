@@ -25,8 +25,8 @@ namespace rope {
         using Node::mLength;
         using Node::mWeight;
 
-        Node::Ptr mLeft;
-        Node::Ptr mRight;
+        Node::Ptr mLeft{};
+        Node::Ptr mRight{};
     };
 
 }  // namespace rope
