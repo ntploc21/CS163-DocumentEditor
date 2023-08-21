@@ -38,15 +38,15 @@ include_directories(src)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/utils.cpp
-
+    
     src/editor.cpp
-
+    
     src/rope/node.cpp
     src/rope/node_leaf.cpp
     src/rope/node_concatenation.cpp
     src/rope/rope.cpp
     src/rope/utils.cpp
-
+    
     # src/document.cpp
     src/text/nchar.cpp
     src/text/nstring.cpp
@@ -57,6 +57,21 @@ add_executable(${PROJECT_NAME}
 # Testing
 add_executable(rope_test
     src/rope/test.cpp
+
+    src/rope/node.cpp
+    src/rope/node_leaf.cpp
+    src/rope/node_concatenation.cpp
+    src/rope/rope.cpp
+    src/rope/utils.cpp
+
+    src/text/nchar.cpp
+    src/text/nstring.cpp
+    src/text/utils.cpp
+)
+
+add_executable(search_test
+    src/search/test.cpp
+    src/search/search.cpp
 
     src/rope/node.cpp
     src/rope/node_leaf.cpp
