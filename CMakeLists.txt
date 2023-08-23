@@ -55,6 +55,7 @@ add_executable(${PROJECT_NAME}
     src/dictionary/dictionary.cpp
     src/dictionary/word.cpp
     src/dictionary/trie.cpp
+    src/autocomplete/suggester.cpp
 )
 
 ######################################
@@ -94,6 +95,7 @@ add_executable(dictionary_test
     src/dictionary/dictionary.cpp
     src/dictionary/word.cpp
     src/dictionary/trie.cpp
+    src/autocomplete/suggester.cpp
 
     src/text/nchar.cpp
     src/text/nstring.cpp
