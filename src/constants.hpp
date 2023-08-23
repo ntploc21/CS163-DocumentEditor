@@ -11,7 +11,7 @@ namespace constants::window {
 }  // namespace constants::window
 
 namespace constants::dictionary {
-    constexpr int char_limit = 336;
+    constexpr int char_limit = (1 << 8);
     enum locale_language {
         ENGLISH = 0,
         VIETNAMESE = 1,
@@ -22,5 +22,5 @@ namespace constants::dictionary {
 }  // namespace constants::dictionary
 
 namespace constants::keyboard {
-    constexpr int char_limit = (1 << 8);
+    constexpr int char_limit = 336;
 }

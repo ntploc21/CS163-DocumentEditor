@@ -68,7 +68,6 @@ private:
 
 private:
     bool closed = false;
-
     Keybind mKeybind;
 
     Font font;

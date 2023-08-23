@@ -20,6 +20,9 @@ jobs:
           make
           sudo make install
           cd ../..
+      - name: Install clip
+        run: |
+          git submodule add https://github.com/dacap/clip.git clip
       - name: Run clang-format
         run: clang-format --dry-run --Werror src/**/*.*pp
       - name: Run CMake
