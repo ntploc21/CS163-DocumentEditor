@@ -20,6 +20,34 @@ void Editor::Init() {
     InitWindow(constants::window::width, constants::window::height,
                constants::window::title.c_str());
     LoadResources();
+
+    PrepareKeybinds();
+}
+
+static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
+                                      int *codepointsResultCount) {
+    int codepointsNoDupsCount = codepointCount;
+    int *codepointsNoDups = (int *)calloc(codepointCount, sizeof(int));
+    memcpy(codepointsNoDups, codepoints, codepointCount * sizeof(int));
+
+    // Remove duplicates
+    for (int i = 0; i < codepointsNoDupsCount; i++) {
+        for (int j = i + 1; j < codepointsNoDupsCount; j++) {
+            if (codepointsNoDups[i] == codepointsNoDups[j]) {
+                for (int k = j; k < codepointsNoDupsCount; k++)
+                    codepointsNoDups[k] = codepointsNoDups[k + 1];
+
+                codepointsNoDupsCount--;
+                j--;
+            }
+        }
+    }
+
+    // NOTE: The size of codepointsNoDups is the same as original array but
+    // only required positions are filled (codepointsNoDupsCount)
+
+    *codepointsResultCount = codepointsNoDupsCount;
+    return codepointsNoDups;
 }
 
 static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
@@ -56,6 +84,8 @@ void Editor::Run() {
     /* render */
     Update(GetFrameTime());
     Render();
+
+    mKeybind.process(true);
 
     if (WindowShouldClose()) closed = true;
 }
@@ -126,6 +156,30 @@ void Editor::LoadResources() {
 
     // Free codepoints, atlas has already been generated
     free(codepointsNoDups);
+}
+
+void Editor::PrepareKeybinds() {
+    // mKeybind.insert(
+    //     {KEY_LEFT_CONTROL, KEY_B},
+    //     [&]() { std::cout << "Keybind CTRL + B is pressed" << std::endl; },
+    //     true);
+
+    // mKeybind.insert(
+    //     {KEY_LEFT_CONTROL, KEY_I},
+    //     [&]() { std::cout << "Keybind CTRL + I is pressed" << std::endl; },
+    //     true);
+
+    // mKeybind.insert(
+    //     {KEY_LEFT_CONTROL, KEY_U},
+    //     [&]() { std::cout << "Keybind CTRL + U is pressed" << std::endl; },
+    //     true);
+
+    // mKeybind.insert(
+    //     {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_S},
+    //     [&]() {
+    //         std::cout << "Keybind CTRL + SHIFT + S is pressed" << std::endl;
+    //     },
+    //     true);
 }
 
 Editor::Editor() {}

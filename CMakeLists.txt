@@ -51,6 +51,14 @@ add_executable(${PROJECT_NAME}
     src/text/nchar.cpp
     src/text/nstring.cpp
     src/text/utils.cpp
+
+    src/dictionary/dictionary.cpp
+    src/dictionary/word.cpp
+    src/dictionary/trie.cpp
+    src/autocomplete/suggester.cpp
+
+    src/keybind/keybind.cpp
+    src/keybind/node.cpp
 )
 
 ######################################
@@ -67,10 +75,6 @@ add_executable(rope_test
     src/text/nchar.cpp
     src/text/nstring.cpp
     src/text/utils.cpp
-
-    src/dictionary/dictionary.cpp
-    src/dictionary/word.cpp
-    src/dictionary/trie.cpp
 )
 
 add_executable(search_test
@@ -82,6 +86,19 @@ add_executable(search_test
     src/rope/node_concatenation.cpp
     src/rope/rope.cpp
     src/rope/utils.cpp
+
+    src/text/nchar.cpp
+    src/text/nstring.cpp
+    src/text/utils.cpp
+)
+
+add_executable(dictionary_test
+    src/dictionary/test.cpp
+    
+    src/dictionary/dictionary.cpp
+    src/dictionary/word.cpp
+    src/dictionary/trie.cpp
+    src/autocomplete/suggester.cpp
 
     src/text/nchar.cpp
     src/text/nstring.cpp

@@ -19,4 +19,8 @@ namespace constants::dictionary {
         NUM_LANGUAGES = 2,
     };
     constexpr locale_language default_language = locale_language::ENGLISH;
+}  // namespace constants::dictionary
+
+namespace constants::keyboard {
+    constexpr int char_limit = 336;
 }
