@@ -38,5 +38,10 @@ int main() {
     testReplace("abc", "a", "bcd");
     testReplace("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "aaaaa", "b");
 
+    testSearch(
+        "xin chào các bạn mình là Lộc, đến từ trường Khoa Học Tự Nhiên - ĐHQG, "
+        "TP.HCM",
+        "Lộc");
+
     return 0;
 }
