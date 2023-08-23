@@ -56,6 +56,9 @@ add_executable(${PROJECT_NAME}
     src/dictionary/word.cpp
     src/dictionary/trie.cpp
     src/autocomplete/suggester.cpp
+
+    src/keybind/keybind.cpp
+    src/keybind/node.cpp
 )
 
 ######################################

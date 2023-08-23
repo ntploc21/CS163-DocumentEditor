@@ -1,6 +1,7 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
+#include "keybind/keybind.hpp"
 #include "raylib.h"
 
 /**
@@ -63,8 +64,13 @@ private:
      */
     void Update(float dt);
 
+    void PrepareKeybinds();
+
 private:
     bool closed = false;
+
+    Keybind mKeybind;
+
     Font font;
 };
 
