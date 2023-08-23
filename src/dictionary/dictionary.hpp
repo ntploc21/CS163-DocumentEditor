@@ -12,6 +12,8 @@ public:
     Dictionary();
     ~Dictionary();
 
+    void loadDatabase(const std::string& path);
+
     bool search(const nstring& word) const;
 
     void set_language(locale_language language);
