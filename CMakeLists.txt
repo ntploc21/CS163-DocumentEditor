@@ -67,6 +67,10 @@ add_executable(rope_test
     src/text/nchar.cpp
     src/text/nstring.cpp
     src/text/utils.cpp
+
+    src/dictionary/dictionary.cpp
+    src/dictionary/word.cpp
+    src/dictionary/trie.cpp
 )
 
 add_executable(search_test
