@@ -70,38 +70,27 @@ void Editor::Run() {
 void Editor::Render() {
     BeginDrawing();
 
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(),
+                  Color{249, 251, 253, 255});
+
+    DrawEditor();
+
     EndDrawing();
 }
 
 std::vector< int > s;
 // std::string tmp;
-Rope tmp;
+// Rope tmp;
 
 void Editor::Update([[maybe_unused]] float dt) {
-    int key = GetCharPressed();
-
-    if (key) {
-        if (key >= 128) s.pop_back();
-        s.push_back(key);
-        // if (key >= 128) tmp = tmp.erase(tmp.length() - 1, 1);
-        // tmp = tmp.append(nstring(nchar(key)));
+    switch (mMode) {
+        case EditorMode::Normal:
+            NormalMode();
+            break;
+        case EditorMode::Insert:
+            InsertMode();
+            break;
     }
-
-    nstring tmpS;
-    if (s.size()) {
-        for (std::size_t i = 0; i < s.size(); i++) {
-            tmpS += nchar(s[i]);
-        }
-    }
-
-    DrawTextEx(font, tmpS.c_str(), {0, 100}, 72, 0, WHITE);
-
-    // if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V) &&
-    //     clip::has(clip::text_format())) {
-    //     tmp.clear();
-    //     clip::get_text(tmp);
-    // }
-    DrawTextEx(font, tmp.to_string().c_str(), {0, 0}, 72, 0, WHITE);
 }
 
 void Editor::LoadResources() {
@@ -125,8 +114,8 @@ void Editor::LoadResources() {
 
     // Load font containing all the provided codepoint glyphs
     // A texture font atlas is automatically generated
-    font = LoadFontEx("assets/fonts/SVN-Times New Roman Bold.ttf", 36,
-                      codepointsNoDups, 256);
+    font =
+        LoadFontEx("assets/fonts/SVN-Arial 3.ttf", 36, codepointsNoDups, 256);
 
     // Set bilinear scale filter for better font scaling
     SetTextureFilter(font.texture, TEXTURE_FILTER_ANISOTROPIC_16X);
@@ -137,29 +126,46 @@ void Editor::LoadResources() {
 
 void Editor::PrepareKeybinds() {
     mKeybind.insert(
-        {KEY_LEFT_CONTROL, KEY_B},
-        [&]() {
-            std::cout << "Keybind CTRL + B is pressed" << std::endl;
-            tmp = tmp.append(nstring("hihi"));
-        },
+        {KEY_BACKSPACE}, [&]() { mDocument.erase_at_cursor(); }, true);
+
+    mKeybind.insert(
+        {KEY_DELETE}, [&]() { mDocument.erase_at_cursor(); }, true);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_Z}, [&]() { mDocument.undo(); }, true);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_Y}, [&]() { mDocument.redo(); }, true);
+
+    mKeybind.insert(
+        {KEY_ENTER}, [&]() { mDocument.insert_at_cursor(nstring("\n")); },
         true);
+}
 
-    // mKeybind.insert(
-    //     {KEY_LEFT_CONTROL, KEY_I},
-    //     [&]() { std::cout << "Keybind CTRL + I is pressed" << std::endl; },
-    //     true);
+void Editor::DrawEditor() {
+    int documentWidth = constants::document::default_view_width;
+    int documentHeight = constants::document::default_view_height;
+    int margin_top = constants::document::margin_top;
+    DrawRectangle(std::max(0, (GetScreenWidth() - documentWidth) / 2),
+                  margin_top, documentWidth, documentHeight, WHITE);
 
-    // mKeybind.insert(
-    //     {KEY_LEFT_CONTROL, KEY_U},
-    //     [&]() { std::cout << "Keybind CTRL + U is pressed" << std::endl; },
-    //     true);
+    DrawTextEx(
+        font, mDocument.rope().to_string().c_str(),
+        {1.0f * std::max(0, (GetScreenWidth() - documentWidth) / 2) + 10, 10},
+        36, 0, BLACK);
+}
 
-    // mKeybind.insert(
-    //     {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_S},
-    //     [&]() {
-    //         std::cout << "Keybind CTRL + SHIFT + S is pressed" << std::endl;
-    //     },
-    //     true);
+void Editor::NormalMode() {}
+
+void Editor::InsertMode() {
+    int key = GetCharPressed();
+
+    if (key) {
+        std::cout << key << std::endl;
+
+        if (key >= 128) mDocument.erase_at_cursor();
+        mDocument.insert_at_cursor(nstring(nchar(key)));
+    }
 }
 
 Editor::Editor() {}

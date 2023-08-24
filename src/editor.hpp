@@ -1,8 +1,11 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
+#include "document.hpp"
 #include "keybind/keybind.hpp"
 #include "raylib.h"
+
+enum class EditorMode { Normal, Insert };
 
 /**
  * @brief The application class that represents the application.
@@ -66,11 +69,20 @@ private:
 
     void PrepareKeybinds();
 
+    void DrawEditor();
+
+    void NormalMode();
+
+    void InsertMode();
+
 private:
     bool closed = false;
     Keybind mKeybind;
+    Document mDocument;
 
     Font font;
+
+    EditorMode mMode{EditorMode::Insert};
 };
 
 #endif  // EDITOR_HPP
