@@ -96,7 +96,7 @@ namespace rope {
         if (index < mLineWeight) {
             return mLeft->find_line_feed(index);
         }
-        return mRight->find_line_feed(index - mLineWeight);
+        return mRight->find_line_feed(index - mLineWeight) + mWeight;
     }
 
     std::size_t Concatenation::find_word_start(std::size_t index) const {

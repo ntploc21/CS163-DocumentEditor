@@ -1,6 +1,7 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
+#include "FontFactory.hpp"
 #include "document.hpp"
 #include "keybind/keybind.hpp"
 #include "raylib.h"
@@ -70,6 +71,7 @@ private:
     void PrepareKeybinds();
 
     void DrawEditor();
+    void DrawEditorText();
 
     void NormalMode();
 
@@ -77,10 +79,10 @@ private:
 
 private:
     bool closed = false;
-    Keybind mKeybind;
-    Document mDocument;
+    Keybind mKeybind{};
+    Document mDocument{};
 
-    Font font;
+    FontFactory* fonts{new FontFactory};
 
     EditorMode mMode{EditorMode::Insert};
 };

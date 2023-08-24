@@ -118,7 +118,7 @@ std::ostream& operator<<(std::ostream& os, const Rope& rope) {
 std::size_t Rope::find_line_start(std::size_t index) const {
     if (index == 0) return 0;
     if (index >= line_count()) return length();
-    return mRoot->find_line_start(index - 1) + 1;
+    return mRoot->find_line_start(index);
 }
 
 std::size_t Rope::line_count() const {

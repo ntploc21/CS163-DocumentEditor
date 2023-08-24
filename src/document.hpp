@@ -3,6 +3,7 @@
 
 #include <optional>
 
+#include "FontFactory.hpp"
 #include "cursor.hpp"
 #include "raylib.h"
 #include "rope/rope.hpp"
@@ -11,6 +12,8 @@ class Document {
 public:
     Document();
     Document(std::string filename);
+
+    void set_font_factory(FontFactory* fonts);
 
     Rope& rope();
     const Rope& rope() const;
@@ -22,8 +25,14 @@ public:
     std::string& filename();
     const std::string& filename() const;
 
-    // void cursor_move_prev_line();
-    // void cursor_move_next_line();
+    Cursor& select_orig();
+    const Cursor& select_orig() const;
+    const Cursor& select_start() const;
+    const Cursor& select_end() const;
+
+    void cursor_move_line(int delta);
+
+    void cursor_move_column(int delta);
     // void cursor_move_prev_line_wrap();
     // void cursor_move_next_line_wrap();
 
@@ -47,19 +56,29 @@ public:
     // void save();
     // void save_as();
 
+    Vector2 get_display_positions(std::size_t index) const;
+
+private:
+    void processWordWrap();
+
 private:
     struct Snapshot {
         Rope rope;
         Cursor cursor;
     };
+    Rope mRope{};
 
     std::vector< Snapshot > mUndo{};
     std::vector< Snapshot > mRedo{};
 
     Cursor mCursor{};
-    Rope mRope{};
+    Cursor mSelectOrig{-1, -1};
+
+    std::vector< Vector2 > displayPositions{};
 
     std::string mFilename{"Untitled"};
+
+    FontFactory* mFonts;
 };
 
 #endif  // DOCUMENT_HPP

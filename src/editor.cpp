@@ -12,8 +12,8 @@
 #include "rope/rope.hpp"
 #include "utils.hpp"
 
-static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
-                                      int *codepointResultCount);
+// static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
+//                                       int *codepointResultCount);
 
 void Editor::Init() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
@@ -24,33 +24,9 @@ void Editor::Init() {
 
     LoadResources();
 
+    mDocument.set_font_factory(fonts);
+
     PrepareKeybinds();
-}
-
-static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
-                                      int *codepointsResultCount) {
-    int codepointsNoDupsCount = codepointCount;
-    int *codepointsNoDups = (int *)calloc(codepointCount, sizeof(int));
-    memcpy(codepointsNoDups, codepoints, codepointCount * sizeof(int));
-
-    // Remove duplicates
-    for (int i = 0; i < codepointsNoDupsCount; i++) {
-        for (int j = i + 1; j < codepointsNoDupsCount; j++) {
-            if (codepointsNoDups[i] == codepointsNoDups[j]) {
-                for (int k = j; k < codepointsNoDupsCount; k++)
-                    codepointsNoDups[k] = codepointsNoDups[k + 1];
-
-                codepointsNoDupsCount--;
-                j--;
-            }
-        }
-    }
-
-    // NOTE: The size of codepointsNoDups is the same as original array but
-    // only required positions are filled (codepointsNoDupsCount)
-
-    *codepointsResultCount = codepointsNoDupsCount;
-    return codepointsNoDups;
 }
 
 bool Editor::WindowClosed() { return closed; }
@@ -94,34 +70,7 @@ void Editor::Update([[maybe_unused]] float dt) {
 }
 
 void Editor::LoadResources() {
-    // NOTE: We are loading 256 codepoints based on first character in our
-    static char *text =
-        " !\"#$%&\'()*+,-./"
-        "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
-        "abcdefghijklmnopqrstuvwxyz{|}~"
-        "aAàÀảẢãÃáÁạẠăĂằẰẳẲẵẴắẮặẶâÂầẦẩẨẫẪấẤậẬbBcCdDđĐeEèÈẻẺẽẼéÉẹẸêÊềỀểỂễỄếẾệỆ"
-        "fFgGhHiIìÌỉỈĩĨíÍịỊjJkKlLmMnNoOòÒỏỎõÕóÓọỌôÔồỒổỔỗỖốỐộỘơƠờỜởỞỡỠớỚợỢpPqQrR"
-        "sStTuUùÙủỦũŨúÚụỤưƯừỪửỬữỮứỨựỰvVwWxXyYỳỲỷỶỹỸýÝỵỴzZ";
-
-    int codepointCount = 0;
-    int *codepoints = LoadCodepoints(text, &codepointCount);
-
-    // Removed duplicate codepoints to generate smaller font atlas
-    int codepointsNoDupsCount = 0;
-    int *codepointsNoDups = CodepointRemoveDuplicates(
-        codepoints, codepointCount, &codepointsNoDupsCount);
-    UnloadCodepoints(codepoints);
-
-    // Load font containing all the provided codepoint glyphs
-    // A texture font atlas is automatically generated
-    font =
-        LoadFontEx("assets/fonts/SVN-Arial 3.ttf", 36, codepointsNoDups, 256);
-
-    // Set bilinear scale filter for better font scaling
-    SetTextureFilter(font.texture, TEXTURE_FILTER_ANISOTROPIC_16X);
-
-    // Free codepoints, atlas has already been generated
-    free(codepointsNoDups);
+    fonts->Load("Arial", "assets/fonts/SVN-Arial 3.ttf");
 }
 
 void Editor::PrepareKeybinds() {
@@ -138,39 +87,95 @@ void Editor::PrepareKeybinds() {
         {KEY_LEFT_CONTROL, KEY_Y}, [&]() { mDocument.redo(); }, true);
 
     mKeybind.insert(
-        {KEY_ENTER}, [&]() { mDocument.insert_at_cursor(nstring("\n")); },
+        {KEY_ENTER},
+        [&]() {
+            std::cout << "enter" << std::endl;
+            mDocument.insert_at_cursor(nstring("\n"));
+            // mDocument.cursor_move_next_line();
+        },
         true);
+
+    mKeybind.insert(
+        {KEY_LEFT}, [&]() { mDocument.cursor_move_prev_char(); }, true);
+
+    mKeybind.insert(
+        {KEY_RIGHT}, [&]() { mDocument.cursor_move_next_char(); }, true);
+
+    mKeybind.insert(
+        {KEY_UP}, [&]() { mDocument.cursor_move_line(-1); }, true);
+
+    mKeybind.insert(
+        {KEY_DOWN}, [&]() { mDocument.cursor_move_line(1); }, true);
 }
 
 void Editor::DrawEditor() {
     int documentWidth = constants::document::default_view_width;
     int documentHeight = constants::document::default_view_height;
     int margin_top = constants::document::margin_top;
+
+    DrawRectangle(std::max(0, (GetScreenWidth() - documentWidth) / 2 - 1),
+                  margin_top - 1, documentWidth + 2, documentHeight + 2,
+                  LIGHTGRAY);
+
     DrawRectangle(std::max(0, (GetScreenWidth() - documentWidth) / 2),
                   margin_top, documentWidth, documentHeight, WHITE);
 
-    DrawTextEx(
-        font, mDocument.rope().to_string().c_str(),
-        {1.0f * std::max(0, (GetScreenWidth() - documentWidth) / 2) + 10, 10},
-        36, 0, BLACK);
+    DrawEditorText();
+}
+
+void Editor::DrawEditorText() {
+    int documentWidth = constants::document::default_view_width;
+    int documentHeight = constants::document::default_view_height;
+    int margin_top = constants::document::margin_top;
+    // Vector2 char_size = utils::measure_text(" ", 20, 0);
+
+    const auto &cursor = mDocument.cursor();
+    const auto &content = mDocument.rope();
+
+    for (std::size_t i = 0; i < mDocument.rope().length(); ++i) {
+        Vector2 pos = mDocument.get_display_positions(i);
+
+        DrawTextEx(
+            fonts->Get("Arial"), mDocument.rope()[i].getChar(),
+            {1.0f * std::max(0, (GetScreenWidth() - documentWidth) / 2) - 1 +
+                 constants::document::padding_left + pos.x,
+             1.0f * margin_top - 1 + constants::document::padding_top + pos.y},
+            36, 0, BLACK);
+    }
+
+    // draw cursor block
+    std::size_t cursor_pos = mDocument.rope().index_from_pos(
+        mDocument.cursor().line, mDocument.cursor().column);
+    Vector2 cursor_display_pos = mDocument.get_display_positions(cursor_pos);
+
+    DrawRectangle(1.0f * std::max(0, (GetScreenWidth() - documentWidth) / 2) -
+                      1 + constants::document::padding_left +
+                      cursor_display_pos.x,
+                  1.0f * margin_top - 1 + constants::document::padding_top +
+                      cursor_display_pos.y,
+                  1.5f, 36, ORANGE);
 }
 
 void Editor::NormalMode() {}
 
 void Editor::InsertMode() {
     int key = GetCharPressed();
+    if (!key) return;
 
-    if (key) {
-        std::cout << key << std::endl;
-
-        if (key >= 128) mDocument.erase_at_cursor();
+    if (key == '\n') {
         mDocument.insert_at_cursor(nstring(nchar(key)));
+        mDocument.cursor_move_line(1);
+
+        return;
     }
+
+    if (key >= 128) mDocument.erase_at_cursor();
+    mDocument.insert_at_cursor(nstring(nchar(key)));
 }
 
 Editor::Editor() {}
 
 Editor::~Editor() {
-    UnloadFont(font);
+    delete fonts;
     // Close();
 }

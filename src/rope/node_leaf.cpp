@@ -56,6 +56,7 @@ namespace rope {
 
     std::size_t Leaf::find_line_feed(std::size_t index) const {
         if (index >= mLineCount) throw std::out_of_range("Index out of range");
+
         return mLinePos.at(index);
     }
 
