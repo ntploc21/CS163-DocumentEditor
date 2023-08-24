@@ -75,8 +75,6 @@ void Keybind::process(bool editable) {
             mPressedKeys.push_back(key);
         }
         return;
-    } else {
-        return;
     }
 }
 

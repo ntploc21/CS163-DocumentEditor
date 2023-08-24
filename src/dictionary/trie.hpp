@@ -11,7 +11,7 @@ namespace dictionary {
 
         void insert(const nstring& word);
         bool search(const nstring& word) const;
- 
+
         void get_all_words(std::vector< nstring >& words) const;
 
     private:
@@ -19,9 +19,6 @@ namespace dictionary {
 
         void get_all_words(Word* root, std::vector< nstring >& words,
                            nstring curWord = "") const;
-=======
-    private:
-        Word* mRoot{new Word};
     };
 
 };  // namespace dictionary

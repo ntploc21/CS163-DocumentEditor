@@ -19,35 +19,12 @@ void Editor::Init() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
     InitWindow(constants::window::width, constants::window::height,
                constants::window::title.c_str());
+
+    MaximizeWindow();
+
     LoadResources();
 
     PrepareKeybinds();
-}
-
-static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
-                                      int *codepointsResultCount) {
-    int codepointsNoDupsCount = codepointCount;
-    int *codepointsNoDups = (int *)calloc(codepointCount, sizeof(int));
-    memcpy(codepointsNoDups, codepoints, codepointCount * sizeof(int));
-
-    // Remove duplicates
-    for (int i = 0; i < codepointsNoDupsCount; i++) {
-        for (int j = i + 1; j < codepointsNoDupsCount; j++) {
-            if (codepointsNoDups[i] == codepointsNoDups[j]) {
-                for (int k = j; k < codepointsNoDupsCount; k++)
-                    codepointsNoDups[k] = codepointsNoDups[k + 1];
-
-                codepointsNoDupsCount--;
-                j--;
-            }
-        }
-    }
-
-    // NOTE: The size of codepointsNoDups is the same as original array but
-    // only required positions are filled (codepointsNoDupsCount)
-
-    *codepointsResultCount = codepointsNoDupsCount;
-    return codepointsNoDups;
 }
 
 static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
@@ -106,8 +83,8 @@ void Editor::Update([[maybe_unused]] float dt) {
     if (key) {
         if (key >= 128) s.pop_back();
         s.push_back(key);
-        if (key >= 128) tmp = tmp.erase(tmp.length() - 1, 1);
-        tmp = tmp.append(nstring(nchar(key)));
+        // if (key >= 128) tmp = tmp.erase(tmp.length() - 1, 1);
+        // tmp = tmp.append(nstring(nchar(key)));
     }
 
     nstring tmpS;
@@ -159,10 +136,13 @@ void Editor::LoadResources() {
 }
 
 void Editor::PrepareKeybinds() {
-    // mKeybind.insert(
-    //     {KEY_LEFT_CONTROL, KEY_B},
-    //     [&]() { std::cout << "Keybind CTRL + B is pressed" << std::endl; },
-    //     true);
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_B},
+        [&]() {
+            std::cout << "Keybind CTRL + B is pressed" << std::endl;
+            tmp = tmp.append(nstring("hihi"));
+        },
+        true);
 
     // mKeybind.insert(
     //     {KEY_LEFT_CONTROL, KEY_I},
