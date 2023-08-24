@@ -91,12 +91,12 @@ namespace rope {
         return ans;
     }
 
-    std::size_t Concatenation::find_line_start(std::size_t index) const {
+    std::size_t Concatenation::find_line_feed(std::size_t index) const {
         if (index >= mLineCount) throw std::out_of_range("Index out of range");
         if (index < mLineWeight) {
-            return mLeft->find_line_start(index);
+            return mLeft->find_line_feed(index);
         }
-        return mRight->find_line_start(index - mLineWeight) + mWeight;
+        return mRight->find_line_feed(index - mLineWeight);
     }
 
     std::size_t Concatenation::find_word_start(std::size_t index) const {

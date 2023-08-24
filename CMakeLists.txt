@@ -59,6 +59,8 @@ add_executable(${PROJECT_NAME}
 
     src/keybind/keybind.cpp
     src/keybind/node.cpp
+
+    src/document.cpp
 )
 
 ######################################

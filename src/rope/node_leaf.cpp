@@ -54,7 +54,7 @@ namespace rope {
         return std::vector< Node::Ptr >{std::make_shared< Leaf >(*this)};
     }
 
-    std::size_t Leaf::find_line_start(std::size_t index) const {
+    std::size_t Leaf::find_line_feed(std::size_t index) const {
         if (index >= mLineCount) throw std::out_of_range("Index out of range");
         return mLinePos.at(index);
     }

@@ -114,3 +114,26 @@ bool Rope::operator!=(const Rope& other) const { return !(*this == other); }
 std::ostream& operator<<(std::ostream& os, const Rope& rope) {
     return os << rope.to_string();
 }
+
+std::size_t Rope::find_line_start(std::size_t index) const {
+    if (index == 0) return 0;
+    if (index >= line_count()) return length();
+    return mRoot->find_line_start(index - 1) + 1;
+}
+
+std::size_t Rope::line_count() const {
+    return mRoot->line_count() + (mRoot->operator[](length() - 1) != '\n');
+}
+
+std::size_t Rope::line_length(std::size_t line_index) const {
+    if (line_index == line_count() - 1) {
+        return length() - mRoot->find_line_start(line_index);
+    }
+    return mRoot->find_line_start(line_index + 1) -
+           mRoot->find_line_start(line_index) - 1;
+}
+
+std::size_t Rope::index_from_pos(std::size_t line_idx,
+                                 std::size_t line_pos) const {
+    return find_line_start(line_idx) + line_pos;
+}
