@@ -50,11 +50,8 @@ void FontFactory::Load(const std::string &id, const std::string &filename) {
 
     // Load font containing all the provided codepoint glyphs
     // A texture font atlas is automatically generated
-    // *font = LoadFontEx(filename.c_str(), 36, codepointsNoDups, 256);
-    *font = LoadFontEx(filename.c_str(), 72, nullptr, 0);
+    *font = LoadFontEx(filename.c_str(), 72, codepointsNoDups, 256);
     SetTextureFilter(font->texture, TEXTURE_FILTER_ANISOTROPIC_16X);
-
-    // std::cout << "Loading font: " << filename.c_str() << std::endl;
 
     // Free codepoints, atlas has already been generated
     free(codepointsNoDups);

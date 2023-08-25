@@ -132,16 +132,20 @@ void Editor::DrawEditorText() {
     const auto &cursor = mDocument.cursor();
     const auto &content = mDocument.rope();
 
-    for (std::size_t i = 0; i < mDocument.rope().length(); ++i) {
+    for (std::size_t i = 0; i < content.length(); ++i) {
         Vector2 pos = mDocument.get_display_positions(i);
 
+        std::cout << i << " " << content[i].getChar() << " " << pos.x << " "
+                  << pos.y << std::endl;
+
         DrawTextEx(
-            fonts->Get("Arial"), mDocument.rope()[i].getChar(),
+            fonts->Get("Arial"), content[i].getChar(),
             {1.0f * std::max(0, (GetScreenWidth() - documentWidth) / 2) - 1 +
                  constants::document::padding_left + pos.x,
              1.0f * margin_top - 1 + constants::document::padding_top + pos.y},
-            36, 0, BLACK);
+            36, 2, BLACK);
     }
+    std::cout << std::endl;
 
     // draw cursor block
     std::size_t cursor_pos = mDocument.rope().index_from_pos(

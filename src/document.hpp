@@ -41,6 +41,8 @@ public:
     // void cursor_move_next_word();
     // void cursor_move_prev_word();
 
+    Vector2 pos_on_mouse() const;
+
     void insert_at_cursor(const nstring& text);
     void append_at_cursor(const nstring& text);
     void erase_at_cursor();

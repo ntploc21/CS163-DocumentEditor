@@ -27,6 +27,18 @@ std::string& Document::filename() { return mFilename; }
 
 const std::string& Document::filename() const { return mFilename; }
 
+Cursor& Document::select_orig() { return mSelectOrig; }
+
+const Cursor& Document::select_orig() const { return mSelectOrig; }
+
+const Cursor& Document::select_start() const {
+    return mCursor < mSelectOrig ? mCursor : mSelectOrig;
+}
+
+const Cursor& Document::select_end() const {
+    return mCursor > mSelectOrig ? mCursor : mSelectOrig;
+}
+
 void Document::cursor_move_line(int delta) {
     mCursor.line = std::clamp(mCursor.line + delta, 0,
                               static_cast< int >(mRope.line_count()) - 1);
@@ -37,10 +49,9 @@ void Document::cursor_move_line(int delta) {
 void Document::cursor_move_column(int delta) {
     int lineLength = mRope.line_length(mCursor.line);
 
-    int right_offset =
-        (mCursor.line + 1 == static_cast< int >(mRope.line_count()));
-    mCursor.column =
-        std::clamp(mCursor.column + delta, 0, lineLength - right_offset);
+    // int right_offset =
+    //     (mCursor.line + 1 == static_cast< int >(mRope.line_count()));
+    mCursor.column = std::clamp(mCursor.column + delta, 0, lineLength);
 
     if (mCursor.column < 0) {
         mCursor.column = 0;
@@ -48,10 +59,11 @@ void Document::cursor_move_column(int delta) {
 }
 
 void Document::cursor_move_next_char() {
-    if (mCursor.column == mRope.line_length(mCursor.line) &&
-        mCursor.line < mRope.line_count() - 1) {
-        ++mCursor.line;
-        mCursor.column = 0;
+    if (mCursor.column == mRope.line_length(mCursor.line)) {
+        if (mCursor.line + 1 < mRope.line_count()) {
+            ++mCursor.line;
+            mCursor.column = 0;
+        }
     } else {
         ++mCursor.column;
     }
@@ -64,6 +76,26 @@ void Document::cursor_move_prev_char() {
         --mCursor.line;
         mCursor.column = mRope.line_length(mCursor.line);
     }
+}
+
+Vector2 Document::pos_on_mouse() const {
+    Vector2 pos = GetMousePosition();
+    pos.x -=
+        constants::document::padding_left -
+        std::max(
+            0,
+            (GetScreenWidth() - constants::document::default_view_width) / 2);
+    pos.y -= constants::document::padding_top - constants::document::margin_top;
+
+    std::size_t document_pos =
+        lower_bound(displayPositions.begin(), displayPositions.end(), pos,
+                    [](const Vector2& lhs, const Vector2& rhs) {
+                        if (lhs.x != rhs.x) return lhs.x < rhs.x;
+                        return lhs.y < rhs.y;
+                    }) -
+        displayPositions.begin();
+
+    return displayPositions[document_pos];
 }
 
 void Document::insert_at_cursor(const nstring& text) {
@@ -131,8 +163,7 @@ void Document::redo() {
 
 Vector2 Document::get_display_positions(std::size_t index) const {
     if (index >= displayPositions.size()) {
-        return {constants::document::padding_left,
-                constants::document::padding_top};
+        return {0, 0};
     }
 
     return displayPositions[index];
@@ -140,7 +171,7 @@ Vector2 Document::get_display_positions(std::size_t index) const {
 
 void Document::processWordWrap() {
     float fontSize = 36.0f;
-    std::string content = mRope.to_string() + " ";
+    nstring content = mRope.to_nstring() + nstring("?");
     bool wordWrap = 1;
     Font font = mFonts->Get("Arial");
     Rectangle rec = {0, 0,
@@ -152,8 +183,8 @@ void Document::processWordWrap() {
 
     displayPositions.clear();
 
-    int length = content.size();  // Total length in bytes of the text,
-                                  // scanned by codepoints in loop
+    int length = content.length();  // Total length in bytes of the text,
+                                    // scanned by codepoints in loop
 
     float textOffsetY = 0.0f;  // Offset between lines (on line break '\n')
     float textOffsetX = 0.0f;  // Offset X to next character to draw
@@ -169,16 +200,21 @@ void Document::processWordWrap() {
     int endLine = -1;    // Index where to stop drawing (where a line ends)
     int lastk = -1;      // Holds last value of the character position
 
+    std::cout << "length = " << length << " _ " << content << std::endl;
+
     for (int i = 0, k = 0; i < length; i++, k++) {
+        const char* text = content[i].getChar();
+
         // Get next codepoint from byte string and glyph index in font
         int codepointByteCount = 0;
-        int codepoint = GetCodepoint(&content[i], &codepointByteCount);
+        int codepoint = GetCodepoint(text, &codepointByteCount);
         int index = GetGlyphIndex(font, codepoint);
 
         // NOTE: Normally we exit the decoding sequence as soon as a bad
         // byte is found (and return 0x3f) but we need to draw all of the
         // bad bytes using the '?' symbol moving one byte
         if (codepoint == 0x3f) codepointByteCount = 1;
+        codepointByteCount = 1;
         i += (codepointByteCount - 1);
 
         float glyphWidth = 0;
@@ -274,6 +310,9 @@ void Document::processWordWrap() {
         if ((textOffsetX != 0) || (codepoint != ' '))
             textOffsetX += glyphWidth;  // avoid leading spaces
     }
+
+    std::cout << "displayPositions.size() = " << displayPositions.size()
+              << std::endl;
 
     // for (std::size_t i = 0; i < displayPositions.size(); ++i) {
     //     std::cout << displayPositions[i].x << " " << displayPositions[i].y
