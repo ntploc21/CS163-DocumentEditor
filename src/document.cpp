@@ -4,6 +4,7 @@
 #include <iomanip>
 
 #include "constants.hpp"
+#include "utils.hpp"
 
 Document::Document() {}
 
@@ -78,24 +79,38 @@ void Document::cursor_move_prev_char() {
     }
 }
 
-Vector2 Document::pos_on_mouse() const {
+Cursor Document::pos_on_mouse() const {
     Vector2 pos = GetMousePosition();
     pos.x -=
-        constants::document::padding_left -
+        constants::document::padding_left +
         std::max(
             0,
             (GetScreenWidth() - constants::document::default_view_width) / 2);
-    pos.y -= constants::document::padding_top - constants::document::margin_top;
+    pos.y -= constants::document::padding_top + constants::document::margin_top;
+
+    auto it = std::lower_bound(displayPositions.begin(), displayPositions.end(),
+                               pos, utils::cmpVector2);
+    if (it == displayPositions.begin()) {
+        return {0, 0};
+    }
+
+    pos.y = (--it)->y;
 
     std::size_t document_pos =
         lower_bound(displayPositions.begin(), displayPositions.end(), pos,
-                    [](const Vector2& lhs, const Vector2& rhs) {
-                        if (lhs.x != rhs.x) return lhs.x < rhs.x;
-                        return lhs.y < rhs.y;
-                    }) -
+                    utils::cmpVector2) -
         displayPositions.begin();
+    if (document_pos == displayPositions.size()) {
+        document_pos = displayPositions.size() - 1;
+    }
 
-    return displayPositions[document_pos];
+    if (displayPositions[document_pos].y != pos.y) {
+        document_pos--;
+    }
+
+    auto [line, column] = mRope.pos_from_index(document_pos);
+
+    return Cursor{static_cast< int >(line), static_cast< int >(column)};
 }
 
 void Document::insert_at_cursor(const nstring& text) {
@@ -200,8 +215,6 @@ void Document::processWordWrap() {
     int endLine = -1;    // Index where to stop drawing (where a line ends)
     int lastk = -1;      // Holds last value of the character position
 
-    std::cout << "length = " << length << " _ " << content << std::endl;
-
     for (int i = 0, k = 0; i < length; i++, k++) {
         const char* text = content[i].getChar();
 
@@ -288,7 +301,8 @@ void Document::processWordWrap() {
 
                 // Draw current character glyph
                 if ((codepoint != ' ') && (codepoint != '\t')) {
-                    // displayPositions.push_back({textOffsetX, textOffsetY});
+                    // displayPositions.push_back({textOffsetX,
+                    // textOffsetY});
                 }
 
                 displayPositions.push_back({textOffsetX, textOffsetY});
@@ -310,13 +324,4 @@ void Document::processWordWrap() {
         if ((textOffsetX != 0) || (codepoint != ' '))
             textOffsetX += glyphWidth;  // avoid leading spaces
     }
-
-    std::cout << "displayPositions.size() = " << displayPositions.size()
-              << std::endl;
-
-    // for (std::size_t i = 0; i < displayPositions.size(); ++i) {
-    //     std::cout << displayPositions[i].x << " " << displayPositions[i].y
-    //               << " | ";
-    // }
-    // std::cout << std::endl;
 }

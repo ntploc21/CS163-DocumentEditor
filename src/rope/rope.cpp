@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "rope.hpp"
 #include "rope/utils.hpp"
 
 using namespace rope;
@@ -136,4 +137,8 @@ std::size_t Rope::line_length(std::size_t line_index) const {
 std::size_t Rope::index_from_pos(std::size_t line_idx,
                                  std::size_t line_pos) const {
     return find_line_start(line_idx) + line_pos;
+}
+std::pair< std::size_t, std::size_t > Rope::pos_from_index(
+    std::size_t index) const {
+    return mRoot->pos_from_index(index);
 }

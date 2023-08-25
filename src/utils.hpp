@@ -9,17 +9,7 @@ namespace utils {
 
     char* unicodeToChar(int unicode);
 
-    // Draw text using font inside rectangle limits
-    void DrawTextBoxed(Font font, const char* text, Rectangle rec,
-                       float fontSize, float spacing, bool wordWrap,
-                       Color tint);
-
-    // Draw text using font inside rectangle limits with support for text
-    // selection};
-    void DrawTextBoxedSelectable(Font font, const char* text, Rectangle rec,
-                                 float fontSize, float spacing, bool wordWrap,
-                                 Color tint, int selectStart, int selectLength,
-                                 Color selectTint, Color selectBackTint);
+    bool cmpVector2(const Vector2& a, const Vector2& b);
 }  // namespace utils
 
 #endif  // UTILS_HPP

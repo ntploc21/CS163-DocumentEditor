@@ -7,6 +7,12 @@ namespace rope {
         return find_line_feed(line_index - 1) + 1;
     }
 
+    std::size_t Node::find_word_start(std::size_t index) const {
+        if (index == 0) return 0;
+
+        return find_word_start_(index - 1);
+    }
+
     std::size_t Node::length() const { return mLength; }
 
     std::size_t Node::depth() const { return mDepth; }

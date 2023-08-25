@@ -29,9 +29,14 @@ namespace rope {
         virtual std::vector< Ptr > leaves() const = 0;
         virtual ~Node() = default;
 
+        virtual std::pair< std::size_t, std::size_t > pos_from_index(
+            std::size_t index) const = 0;
+
         virtual std::size_t find_line_feed(std::size_t index) const = 0;
         virtual std::size_t find_line_start(std::size_t line_index) const;
-        virtual std::size_t find_word_start(std::size_t word_index) const = 0;
+
+        virtual std::size_t find_word_start_(std::size_t word_index) const = 0;
+        virtual std::size_t find_word_start(std::size_t index) const;
 
         std::size_t length() const;
         std::size_t depth() const;
@@ -70,8 +75,11 @@ namespace rope {
             std::size_t index) const override;
         std::vector< Node::Ptr > leaves() const override;
 
+        std::pair< std::size_t, std::size_t > pos_from_index(
+            std::size_t index) const override;
+
         std::size_t find_line_feed(std::size_t index) const override;
-        std::size_t find_word_start(std::size_t index) const override;
+        std::size_t find_word_start_(std::size_t index) const override;
 
         std::size_t line_count() const override;
         std::size_t word_count() const override;
@@ -109,8 +117,11 @@ namespace rope {
             std::size_t index) const override;
         std::vector< Node::Ptr > leaves() const override;
 
+        std::pair< std::size_t, std::size_t > pos_from_index(
+            std::size_t index) const override;
+
         std::size_t find_line_feed(std::size_t index) const override;
-        std::size_t find_word_start(std::size_t index) const override;
+        std::size_t find_word_start_(std::size_t index) const override;
 
         std::size_t line_count() const override;
         std::size_t word_count() const override;
@@ -129,8 +140,8 @@ namespace rope {
 
         nstring mText{};
 
-        std::vector< std::size_t > mLinePos{};
-        std::vector< std::size_t > mWordPos{};
+        std::vector< int > mLinePos{};
+        std::vector< int > mWordPos{};
     };
 
 }  // namespace rope

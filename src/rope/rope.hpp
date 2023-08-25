@@ -52,6 +52,9 @@ public:
     std::size_t index_from_pos(std::size_t line_idx,
                                std::size_t line_pos) const;
 
+    std::pair< std::size_t, std::size_t > pos_from_index(
+        std::size_t index) const;
+
     Rope& operator=(const Rope& other) = default;
     bool operator==(const Rope& other) const;
     bool operator!=(const Rope& other) const;
