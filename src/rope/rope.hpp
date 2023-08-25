@@ -46,6 +46,10 @@ public:
 
     std::pair< Rope, Rope > split(std::size_t index) const;
 
+    std::size_t find_word_start(std::size_t word_index) const;
+    std::size_t find_word_at(std::size_t index) const;
+    std::size_t word_count() const;
+
     std::size_t find_line_start(std::size_t index) const;
     std::size_t line_count() const;
     std::size_t line_length(std::size_t line_index) const;

@@ -77,6 +77,10 @@ private:
 
     void InsertMode();
 
+    Document& currentDocument();
+
+    const Document& currentDocument() const;
+
 private:
     bool closed = false;
     Keybind mKeybind{};

@@ -6,7 +6,7 @@
 #include "constants.hpp"
 #include "utils.hpp"
 
-Document::Document() {}
+Document::Document() : mRope{"\n"} {}
 
 Document::Document(std::string filename) : mFilename{filename} {
     // not implemented yet
@@ -56,6 +56,54 @@ void Document::cursor_move_column(int delta) {
 
     if (mCursor.column < 0) {
         mCursor.column = 0;
+    }
+}
+
+void Document::cursor_move_next_word() {
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+    if (pos == mRope.length()) return;
+    cursor_move_next_char();
+
+    int c = mRope[pos].codepoint();
+    bool alnum_word = !!std::isalnum(c);
+    bool punct_word = !!std::ispunct(c);
+
+    if (alnum_word) {
+        for (; pos + 2 < mRope.length() && std::isalnum(mRope[pos].codepoint());
+             ++pos) {
+            cursor_move_next_char();
+        }
+    } else if (pos + 2 < mRope.length() && punct_word) {
+        ++pos;
+        cursor_move_next_char();
+        if (std::ispunct(mRope[pos].codepoint())) {
+            return;
+        }
+    }
+
+    if (std::isspace(c)) {
+        for (; pos + 2 < mRope.length() && std::isspace(mRope[pos].codepoint());
+             ++pos) {
+            cursor_move_next_char();
+        }
+    }
+}
+
+void Document::cursor_move_prev_word() {
+    if (mCursor.column == 0 && mCursor.line == 0) return;
+    cursor_move_prev_char();
+
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+    int c = mRope[pos].codepoint();
+
+    for (; pos > 0 && std::isspace(mRope[pos].codepoint()); --pos) {
+        cursor_move_prev_char();
+    }
+
+    if (std::ispunct(c)) return;
+
+    for (; pos > 0 && std::isalnum(mRope[pos - 1].codepoint()); --pos) {
+        cursor_move_prev_char();
     }
 }
 
@@ -117,8 +165,6 @@ void Document::insert_at_cursor(const nstring& text) {
     std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
     mRope = mRope.insert(pos, text);
 
-    std::cout << pos << std::endl;
-
     for (std::size_t i = 0; i < text.length(); ++i) {
         cursor_move_next_char();
     }
@@ -147,6 +193,41 @@ void Document::erase_at_cursor() {
     processWordWrap();
 }
 
+void Document::erase_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    erase_range(start, end);
+}
+
+void Document::erase_range(std::size_t start, std::size_t end) {
+    save_snapshot();
+
+    mRope = mRope.erase(start, end - start);
+
+    set_cursor(select_start());
+    if (mRope.length() == 0) {
+        mRope = mRope.append("\n");
+    }
+    processWordWrap();
+}
+
+void Document::copy_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    copy_range(start, end);
+}
+
+void Document::copy_range(std::size_t start, std::size_t end) {
+    std::string text = mRope.substr(start, end - start);
+    SetClipboardText(text.c_str());
+}
+
 void Document::save_snapshot() {
     mUndo.push_back({mRope, mCursor});
     mRedo.clear();
@@ -162,6 +243,8 @@ void Document::undo() {
     set_cursor(prev_cursor);
 
     mUndo.pop_back();
+
+    processWordWrap();
 }
 
 void Document::redo() {
@@ -174,6 +257,8 @@ void Document::redo() {
     set_cursor(next_cursor);
 
     mRedo.pop_back();
+
+    processWordWrap();
 }
 
 Vector2 Document::get_display_positions(std::size_t index) const {
@@ -184,9 +269,19 @@ Vector2 Document::get_display_positions(std::size_t index) const {
     return displayPositions[index];
 }
 
+void Document::turn_on_selecting() { mIsSelecting = true; }
+
+void Document::turn_off_selecting() {
+    mSelectOrig = {-1, -1};
+    mIsSelecting = false;
+}
+
+bool Document::is_selecting() const { return mIsSelecting; }
+
 void Document::processWordWrap() {
     float fontSize = 36.0f;
     nstring content = mRope.to_nstring() + nstring("?");
+
     bool wordWrap = 1;
     Font font = mFonts->Get("Arial");
     Rectangle rec = {0, 0,

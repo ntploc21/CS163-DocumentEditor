@@ -44,12 +44,17 @@ public:
     nstring& toggleSubscript(std::size_t start, std::size_t length);
     nstring& toggleSuperscript(std::size_t start, std::size_t length);
 
+    void setFontSize(int size);
+    int getFontSize() const;
+
 private:
     nstring& toggleType(std::size_t start, std::size_t length,
                         nchar::Type type);
 
     std::vector< nchar > mChars{};
     std::size_t mLength{};
+
+    int mFontSize{constants::document::default_font_size};
 };
 
 #endif  // TEXT_nstring_HPP

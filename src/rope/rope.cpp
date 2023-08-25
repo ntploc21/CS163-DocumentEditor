@@ -116,14 +116,32 @@ std::ostream& operator<<(std::ostream& os, const Rope& rope) {
     return os << rope.to_string();
 }
 
+std::size_t Rope::find_word_start(std::size_t word_index) const {
+    if (word_index == 0) return 0;
+    if (word_index >= word_count()) return length();
+    return mRoot->find_word_start(word_index);
+}
+
+std::size_t Rope::find_word_at(std::size_t index) const {
+    if (index == 0) return 0;
+    if (index >= length()) return word_count();
+    return mRoot->find_word_at(index);
+}
+
+std::size_t Rope::word_count() const {
+    return mRoot->word_count() +
+           (length() ? mRoot->operator[](length() - 1) != ' ' : 0);
+}
+
 std::size_t Rope::find_line_start(std::size_t index) const {
     if (index == 0) return 0;
     if (index >= line_count()) return length();
-    return mRoot->find_line_start(index);
+    return mRoot->find_line_feed(index - 1) + 1;
 }
 
 std::size_t Rope::line_count() const {
-    return mRoot->line_count() + (mRoot->operator[](length() - 1) != '\n');
+    return mRoot->line_count() +
+           (length() ? mRoot->operator[](length() - 1) != '\n' : 0);
 }
 
 std::size_t Rope::line_length(std::size_t line_index) const {

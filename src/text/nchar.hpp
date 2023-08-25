@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "constants.hpp"
+
 // reimplement the char class in C++
 class nchar {
 public:
@@ -42,9 +44,14 @@ public:
 
     bool getType() const;
 
+    void setFontSize(int size);
+    int getFontSize() const;
+
 private:
     int mCodepoint{};
     int mType{};
+
+    int mFontSize{constants::document::default_font_size};
 };
 
 #endif  // TEXT_nchar_HPP

@@ -9,7 +9,8 @@ nstring::nstring() {}
 nstring::nstring(const nchar& other) { *this = other; }
 
 nstring::nstring(const nstring& other)
-    : mChars{other.mChars}, mLength{other.mLength} {}
+    : mChars{other.mChars}, mLength{other.mLength}, mFontSize{other.mFontSize} {
+}
 
 nstring::nstring(const std::string& str) { *this = str; }
 
@@ -18,6 +19,7 @@ nstring::nstring(const char* str) { *this = str; }
 nstring& nstring::operator=(const char* str) {
     std::string s = str;
     *this = s;
+    mFontSize = constants::document::default_font_size;
     return *this;
 }
 
@@ -25,17 +27,20 @@ nstring& nstring::operator=(const nchar& other) {
     mChars.clear();
     mChars.push_back(other);
     mLength = 1;
+    mFontSize = other.getFontSize();
     return *this;
 }
 
 nstring& nstring::operator=(const nstring& other) {
     mChars = other.mChars;
     mLength = other.mLength;
+    mFontSize = other.mFontSize;
     return *this;
 }
 
 nstring& nstring::operator=(const std::string& str) {
     mChars.clear();
+    mFontSize = constants::document::default_font_size;
 
     for (int i = 0; i < str.length();) {
         if ((str[i] & 0x80) == 0) {
@@ -72,6 +77,7 @@ bool nstring::operator!=(const nstring& other) const {
 }
 
 nstring& nstring::operator+=(const nstring& other) {
+    mFontSize = std::max(mFontSize, other.getFontSize());
     for (int i = 0; i < other.length(); ++i) {
         mChars.push_back(other.mChars[i]);
     }
@@ -81,11 +87,13 @@ nstring& nstring::operator+=(const nstring& other) {
 
 nstring nstring::operator+(const nstring& other) const {
     nstring result(*this);
+
     result += other;
     return result;
 }
 
 nstring& nstring::operator+=(const nchar& other) {
+    mFontSize = std::max(mFontSize, other.getFontSize());
     mChars.push_back(other);
     mLength++;
     return *this;
@@ -219,3 +227,12 @@ nstring& nstring::toggleType(std::size_t start, std::size_t length,
     }
     return *this;
 }
+
+void nstring::setFontSize(int size) {
+    mFontSize = size;
+    for (int i = 0; i < mChars.size(); ++i) {
+        mChars[i].setFontSize(size);
+    }
+}
+
+int nstring::getFontSize() const { return mFontSize; }

@@ -38,18 +38,18 @@ public:
 
     void cursor_move_next_char();
     void cursor_move_prev_char();
-    // void cursor_move_next_word();
-    // void cursor_move_prev_word();
+    void cursor_move_next_word();
+    void cursor_move_prev_word();
 
     Cursor pos_on_mouse() const;
 
     void insert_at_cursor(const nstring& text);
     void append_at_cursor(const nstring& text);
     void erase_at_cursor();
-    // void erase_selected();
-    // void erase_range(std::size_t start, std::size_t end);
-    // void copy_selected();
-    // void copy_range(std::size_t start, std::size_t end);
+    void erase_selected();
+    void erase_range(std::size_t start, std::size_t end);
+    void copy_selected();
+    void copy_range(std::size_t start, std::size_t end);
 
     void save_snapshot();
     void undo();
@@ -59,6 +59,10 @@ public:
     // void save_as();
 
     Vector2 get_display_positions(std::size_t index) const;
+
+    void turn_on_selecting();
+    void turn_off_selecting();
+    bool is_selecting() const;
 
 private:
     void processWordWrap();
@@ -81,6 +85,7 @@ private:
     std::string mFilename{"Untitled"};
 
     FontFactory* mFonts;
+    bool mIsSelecting{false};
 };
 
 #endif  // DOCUMENT_HPP

@@ -1,9 +1,12 @@
 #include "text/nchar.hpp"
 
+#include "nchar.hpp"
+
 nchar::nchar() {}
 
 nchar::nchar(const nchar& other)
-    : mCodepoint{other.mCodepoint}, mType{other.mType} {}
+    : mCodepoint{other.mCodepoint}, mType{other.mType},
+      mFontSize{other.mFontSize} {}
 
 nchar::nchar(const char* c) { *this = c; }
 
@@ -12,6 +15,7 @@ nchar::nchar(int codepoint) : mCodepoint{codepoint} {}
 nchar& nchar::operator=(const nchar& other) {
     mCodepoint = other.mCodepoint;
     mType = other.mType;
+    mFontSize = other.mFontSize;
     return *this;
 }
 
@@ -46,6 +50,7 @@ nchar& nchar::operator=(const char* c) {
     }
 
     mCodepoint = unicode;
+    mFontSize = constants::document::default_font_size;
     return *this;
 }
 
@@ -133,3 +138,6 @@ nchar& nchar::toggleType(Type type) {
 bool nchar::getType() const { return mType; }
 
 #undef MASK
+void nchar::setFontSize(int size) { mFontSize = size; }
+
+int nchar::getFontSize() const { return mFontSize; }

@@ -112,19 +112,40 @@ namespace rope {
         return std::make_pair(line_idx + mLineWeight, line_pos);
     }
     std::size_t Concatenation::find_line_feed(std::size_t index) const {
-        if (index >= mLineCount) throw std::out_of_range("Index out of range");
+        // if (index >= mLineCount) throw std::out_of_range("Index out of
+        // range");
         if (index < mLineWeight) {
             return mLeft->find_line_feed(index);
         }
         return mRight->find_line_feed(index - mLineWeight) + mWeight;
     }
 
-    std::size_t Concatenation::find_word_start_(std::size_t index) const {
+    std::size_t Concatenation::find_word_start(std::size_t index) const {
         if (index >= mWordCount) throw std::out_of_range("Index out of range");
         if (index < mWordWeight) {
             return mLeft->find_word_start(index);
         }
-        return mRight->find_word_start_(index - mWordWeight) + mWeight;
+        return mRight->find_word_start(index - mWordWeight) + mWeight;
+    }
+
+    std::size_t Concatenation::find_word_at(std::size_t index) const {
+        if (index >= mLength) throw std::out_of_range("Index out of range");
+
+        if (index == 0) return 0;
+
+        if (index == mLength - 1) {
+            if (operator[](index) != ' ' && operator[](index) != '\n' &&
+                                            operator[](index) != '\t')
+                return 1;
+            return 0;
+        }
+
+        if (index < mWeight) {
+            return mLeft->find_word_at(index);
+        }
+        std::size_t word_index =
+            mRight->find_word_at(index - mWeight) + mWordWeight;
+        return word_index;
     }
 
     std::size_t Concatenation::line_count() const { return mLineCount; }
