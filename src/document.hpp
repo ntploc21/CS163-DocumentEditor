@@ -81,6 +81,14 @@ public:
     void subscript_selected();
     void superscript_selected();
 
+    void set_text_color_selected(Color color);
+
+    void set_text_color(Color color);
+
+    void set_background_color_selected(Color color);
+
+    void set_background_color(Color color);
+
 private:
     void processWordWrap();
     // void processWordWrap2();
@@ -109,6 +117,10 @@ private:
     DocumentFont* mDocFonts;
 
     bool mIsSelecting{false};
+
+private:
+    Color mTextColor{constants::document::default_text_color};
+    Color mBackgroundColor{constants::document::default_background_color};
 };
 
 #endif  // DOCUMENT_HPP

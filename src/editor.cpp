@@ -12,9 +12,6 @@
 #include "rope/rope.hpp"
 #include "utils.hpp"
 
-// static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
-//                                       int *codepointResultCount);
-
 void Editor::Init() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
     InitWindow(constants::window::width, constants::window::height,

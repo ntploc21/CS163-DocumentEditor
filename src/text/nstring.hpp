@@ -50,6 +50,12 @@ public:
     void setFontId(std::size_t id);
     int getFontId() const;
 
+    void setColor(Color color);
+    Color getColor() const;
+
+    void setBackgroundColor(Color color);
+    Color getBackgroundColor() const;
+
 private:
     nstring& toggleType(std::size_t start, std::size_t length,
                         nchar::Type type);
@@ -60,6 +66,9 @@ private:
     int mFontSize{constants::document::default_font_size};
 
     int mFontId{0};
+
+    Color mColor{constants::document::default_text_color};
+    Color mBackgroundColor{constants::document::default_background_color};
 };
 
 #endif  // TEXT_nstring_HPP

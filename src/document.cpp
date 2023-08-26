@@ -313,6 +313,8 @@ std::vector< nstring > Document::suggest_at_cursor() {
 }
 
 void Document::underline_selected() {
+    save_snapshot();
+
     std::size_t start =
         mRope.index_from_pos(select_start().line, select_start().column);
     std::size_t end =
@@ -323,11 +325,11 @@ void Document::underline_selected() {
     selected.toggleUnderline(0, selected.length());
 
     mRope = mRope.replace(start, end - start, selected);
-
-    processWordWrap();
 }
 
 void Document::strikethrough_selected() {
+    save_snapshot();
+
     std::size_t start =
         mRope.index_from_pos(select_start().line, select_start().column);
     std::size_t end =
@@ -338,11 +340,11 @@ void Document::strikethrough_selected() {
     selected.toggleStrikethrough(0, selected.length());
 
     mRope = mRope.replace(start, end - start, selected);
-
-    processWordWrap();
 }
 
 void Document::bold_selected() {
+    save_snapshot();
+
     std::size_t start =
         mRope.index_from_pos(select_start().line, select_start().column);
     std::size_t end =
@@ -358,6 +360,8 @@ void Document::bold_selected() {
 }
 
 void Document::italic_selected() {
+    save_snapshot();
+
     std::size_t start =
         mRope.index_from_pos(select_start().line, select_start().column);
     std::size_t end =
@@ -373,6 +377,8 @@ void Document::italic_selected() {
 }
 
 void Document::subscript_selected() {
+    save_snapshot();
+
     std::size_t start =
         mRope.index_from_pos(select_start().line, select_start().column);
     std::size_t end =
@@ -388,6 +394,8 @@ void Document::subscript_selected() {
 }
 
 void Document::superscript_selected() {
+    save_snapshot();
+
     std::size_t start =
         mRope.index_from_pos(select_start().line, select_start().column);
     std::size_t end =
@@ -402,149 +410,75 @@ void Document::superscript_selected() {
     processWordWrap();
 }
 
-// void Document::processWordWrap() {
-//     float fontSize = 36.0f;
-//     nstring content = mRope.to_nstring() + nstring("?");
+void Document::set_text_color_selected(Color color) {
+    save_snapshot();
 
-//     bool wordWrap = 1;
-//     Font font = mFonts->Get("Arial");
-//     Rectangle rec = {0, 0,
-//                      constants::document::default_view_width -
-//                          2 * constants::document::margin_left,
-//                      constants::document::default_view_height -
-//                          2 * constants::document::margin_top};
-//     float spacing = 0.0f;
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
 
-//     displayPositions.clear();
+    nstring selected = mRope.subnstr(start, end - start);
 
-//     int length = content.length();  // Total length in bytes of the text,
-//                                     // scanned by codepoints in loop
+    selected.setColor(color);
 
-//     float textOffsetY = 0.0f;  // Offset between lines (on line break '\n')
-//     float textOffsetX = 0.0f;  // Offset X to next character to draw
+    mRope = mRope.replace(start, end - start, selected);
+}
 
-//     float scaleFactor =
-//         fontSize / (float)font.baseSize;  // Character rectangle scaling
-//         factor
+void Document::set_text_color(Color color) {
+    save_snapshot();
 
-//     // Word/character wrapping mechanism variables
-//     enum { MEASURE_STATE = 0, DRAW_STATE = 1 };
-//     int state = wordWrap ? MEASURE_STATE : DRAW_STATE;
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
 
-//     int startLine = -1;  // Index where to begin drawing (where a line
-//     begins) int endLine = -1;    // Index where to stop drawing (where a line
-//     ends) int lastk = -1;      // Holds last value of the character position
+    int left = pos, right = pos;
 
-//     for (int i = 0, k = 0; i < length; i++, k++) {
-//         const char* text = content[i].getChar();
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
 
-//         // Get next codepoint from byte string and glyph index in font
-//         int codepointByteCount = 0;
-//         int codepoint = GetCodepoint(text, &codepointByteCount);
-//         int index = GetGlyphIndex(font, codepoint);
+    int start = left, end = right;
 
-//         // NOTE: Normally we exit the decoding sequence as soon as a bad
-//         // byte is found (and return 0x3f) but we need to draw all of the
-//         // bad bytes using the '?' symbol moving one byte
-//         if (codepoint == 0x3f) codepointByteCount = 1;
-//         codepointByteCount = 1;
-//         i += (codepointByteCount - 1);
+    nstring selected = mRope.subnstr(start, end - start);
 
-//         float glyphWidth = 0;
-//         if (codepoint != '\n') {
-//             glyphWidth = (font.glyphs[index].advanceX == 0)
-//                              ? font.recs[index].width * scaleFactor
-//                              : font.glyphs[index].advanceX * scaleFactor;
+    selected.setColor(color);
 
-//             if (i + 1 < length) glyphWidth = glyphWidth + spacing;
-//         }
+    mRope = mRope.replace(start, end - start, selected);
+}
 
-//         // NOTE: When wordWrap is ON we first measure how much of the text
-//         // we can draw before going outside of the rec container We store
-//         // this info in startLine and endLine, then we change states, draw
-//         // the text between those two variables and change states again and
-//         // again recursively until the end of the text (or until we get
-//         // outside of the container). When wordWrap is OFF we don't need the
-//         // measure state so we go to the drawing state immediately and begin
-//         // drawing on the next line before we can get outside the container.
-//         if (state == MEASURE_STATE) {
-//             // TODO: There are multiple types of spaces in UNICODE, maybe
-//             // it's a good idea to add support for more Ref:
-//             // http://jkorpela.fi/chars/spaces.html
-//             if ((codepoint == ' ') || (codepoint == '\t') ||
-//                 (codepoint == '\n'))
-//                 endLine = i;
+void Document::set_background_color_selected(Color color) {
+    save_snapshot();
 
-//             if ((textOffsetX + glyphWidth) > rec.width) {
-//                 endLine = (endLine < 1) ? i : endLine;
-//                 if (i == endLine) endLine -= codepointByteCount;
-//                 if ((startLine + codepointByteCount) == endLine)
-//                     endLine = (i - codepointByteCount);
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
 
-//                 state = !state;
-//             } else if ((i + 1) == length) {
-//                 endLine = i;
-//                 state = !state;
-//             } else if (codepoint == '\n')
-//                 state = !state;
+    nstring selected = mRope.subnstr(start, end - start);
 
-//             if (state == DRAW_STATE) {
-//                 textOffsetX = 0;
-//                 i = startLine;
-//                 glyphWidth = 0;
+    selected.setBackgroundColor(color);
 
-//                 // Save character position when we switch states
-//                 int tmp = lastk;
-//                 lastk = k - 1;
-//                 k = tmp;
-//             }
-//         } else {
-//             if (codepoint == '\n') {
-//                 if (!wordWrap) {
-//                     textOffsetY +=
-//                         (font.baseSize + font.baseSize / 2) * scaleFactor;
-//                     textOffsetX = 0;
-//                 }
+    mRope = mRope.replace(start, end - start, selected);
+}
 
-//                 displayPositions.push_back({textOffsetX, textOffsetY});
-//             } else {
-//                 if (!wordWrap && ((textOffsetX + glyphWidth) > rec.width)) {
-//                     textOffsetY +=
-//                         (font.baseSize + font.baseSize / 2) * scaleFactor;
-//                     textOffsetX = 0;
-//                 }
+void Document::set_background_color(Color color) {
+    save_snapshot();
 
-//                 // When text overflows rectangle height limit, just stop
-//                 // drawing
-//                 if ((textOffsetY + font.baseSize * scaleFactor) > rec.height)
-//                     break;
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
 
-//                 // Draw current character glyph
-//                 if ((codepoint != ' ') && (codepoint != '\t')) {
-//                     // displayPositions.push_back({textOffsetX,
-//                     // textOffsetY});
-//                 }
+    int left = pos, right = pos;
 
-//                 displayPositions.push_back({textOffsetX, textOffsetY});
-//             }
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
 
-//             if (wordWrap && (i == endLine)) {
-//                 textOffsetY +=
-//                     (font.baseSize + font.baseSize / 2) * scaleFactor;
-//                 textOffsetX = 0;
-//                 startLine = endLine;
-//                 endLine = -1;
-//                 glyphWidth = 0;
-//                 k = lastk;
+    int start = left, end = right;
 
-//                 state = !state;
-//             }
-//         }
+    nstring selected = mRope.subnstr(start, end - start);
 
-//         if ((textOffsetX != 0) || (codepoint != ' '))
-//             textOffsetX += glyphWidth;  // avoid leading spaces
-//     }
-// }
+    selected.setBackgroundColor(color);
+
+    mRope = mRope.replace(start, end - start, selected);
+}
 
 void Document::processWordWrap() {
     auto getFont = [&](const nchar& c) -> Font {

@@ -270,3 +270,28 @@ void nstring::setFontId(std::size_t id) {
 }
 
 int nstring::getFontId() const { return mFontId; }
+
+void nstring::setColor(Color color) {
+    mColor = color;
+    for (int i = 0; i < mChars.size(); ++i) {
+        mChars[i].setColor(color);
+    }
+}
+
+Color nstring::getColor() const {
+    if (mChars.size() == 0) return constants::document::default_text_color;
+    return mChars[0].getColor();
+}
+
+void nstring::setBackgroundColor(Color color) {
+    mBackgroundColor = color;
+    for (int i = 0; i < mChars.size(); ++i) {
+        mChars[i].setBackgroundColor(color);
+    }
+}
+
+Color nstring::getBackgroundColor() const {
+    if (mChars.size() == 0)
+        return constants::document::default_background_color;
+    return mChars[0].getBackgroundColor();
+}
