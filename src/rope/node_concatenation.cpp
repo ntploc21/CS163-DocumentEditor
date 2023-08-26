@@ -37,13 +37,13 @@ namespace rope {
     nstring Concatenation::subnstr(std::size_t start,
                                    std::size_t length) const {
         if (start >= mWeight) {
-            return mRight ? mRight->substr(start - mWeight, length) : "";
+            return mRight ? mRight->subnstr(start - mWeight, length) : "";
         }
 
-        std::string ans = mLeft ? mLeft->substr(start, length) : "";
+        nstring ans = mLeft ? mLeft->subnstr(start, length) : "";
 
         if (start + length > mWeight) {
-            ans += mRight ? mRight->substr(0, length - (mWeight - start)) : "";
+            ans += mRight ? mRight->subnstr(0, length - (mWeight - start)) : "";
         }
         return ans;
     }

@@ -1,12 +1,15 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
+#include "DocumentFont.hpp"
 #include "FontFactory.hpp"
+#include "dictionary/dictionary.hpp"
 #include "document.hpp"
 #include "keybind/keybind.hpp"
 #include "raylib.h"
+#include "search/search.hpp"
 
-enum class EditorMode { Normal, Insert };
+enum class EditorMode { Normal, Insert, Search };
 
 /**
  * @brief The application class that represents the application.
@@ -77,6 +80,8 @@ private:
 
     void InsertMode();
 
+    void SearchMode();
+
     Document& currentDocument();
 
     const Document& currentDocument() const;
@@ -85,8 +90,11 @@ private:
     bool closed = false;
     Keybind mKeybind{};
     Document mDocument{};
+    Search mSearch{};
+    Dictionary* mDictionary{new Dictionary};
 
     FontFactory* fonts{new FontFactory};
+    DocumentFont* mDocumentFont{new DocumentFont};
 
     EditorMode mMode{EditorMode::Insert};
 };

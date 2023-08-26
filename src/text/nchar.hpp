@@ -4,9 +4,15 @@
 #include <iostream>
 
 #include "constants.hpp"
+#include "raylib.h"
 
 // reimplement the char class in C++
 class nchar {
+public:
+    const Color default_text_color = BLACK;
+
+    const Color default_background_color = Color{0, 0, 0, 0};
+
 public:
     enum Type {
         Bold = 0,
@@ -42,16 +48,38 @@ public:
 
     nchar& toggleType(nchar::Type type);
 
-    bool getType() const;
+    int getType() const;
 
     void setFontSize(int size);
     int getFontSize() const;
+
+    void setFontId(std::size_t id);
+    std::size_t getFontId() const;
+
+    void setColor(Color color);
+    Color getColor() const;
+
+    void setBackgroundColor(Color color);
+    Color getBackgroundColor() const;
+
+    bool isBold() const;
+    bool isItalic() const;
+    bool isUnderline() const;
+    bool isStrikethrough() const;
+    bool isSubscript() const;
+    bool isSuperscript() const;
 
 private:
     int mCodepoint{};
     int mType{};
 
     int mFontSize{constants::document::default_font_size};
+
+    Color mColor{constants::document::default_text_color};
+
+    Color mBackgroundColor{constants::document::default_background_color};
+
+    std::size_t mFontId{0};
 };
 
 #endif  // TEXT_nchar_HPP

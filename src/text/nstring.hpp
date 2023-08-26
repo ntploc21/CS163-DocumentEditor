@@ -47,6 +47,9 @@ public:
     void setFontSize(int size);
     int getFontSize() const;
 
+    void setFontId(std::size_t id);
+    int getFontId() const;
+
 private:
     nstring& toggleType(std::size_t start, std::size_t length,
                         nchar::Type type);
@@ -55,6 +58,8 @@ private:
     std::size_t mLength{};
 
     int mFontSize{constants::document::default_font_size};
+
+    int mFontId{0};
 };
 
 #endif  // TEXT_nstring_HPP

@@ -6,7 +6,8 @@ nchar::nchar() {}
 
 nchar::nchar(const nchar& other)
     : mCodepoint{other.mCodepoint}, mType{other.mType},
-      mFontSize{other.mFontSize} {}
+      mFontSize{other.mFontSize}, mColor{other.mColor},
+      mBackgroundColor{other.mBackgroundColor}, mFontId{other.mFontId} {}
 
 nchar::nchar(const char* c) { *this = c; }
 
@@ -16,6 +17,9 @@ nchar& nchar::operator=(const nchar& other) {
     mCodepoint = other.mCodepoint;
     mType = other.mType;
     mFontSize = other.mFontSize;
+    mFontId = other.mFontId;
+    mColor = other.mColor;
+    mBackgroundColor = other.mBackgroundColor;
     return *this;
 }
 
@@ -50,7 +54,12 @@ nchar& nchar::operator=(const char* c) {
     }
 
     mCodepoint = unicode;
+    mType = 0;
     mFontSize = constants::document::default_font_size;
+    mFontId = constants::document::default_font_id;
+    mColor = constants::document::default_text_color;
+    mBackgroundColor = constants::document::default_background_color;
+
     return *this;
 }
 
@@ -121,11 +130,17 @@ nchar& nchar::toggleStrikethrough() {
 }
 
 nchar& nchar::toggleSubscript() {
+    if (isSuperscript()) {
+        toggleSuperscript();
+    }
     mType ^= MASK(Subscript);
     return *this;
 }
 
 nchar& nchar::toggleSuperscript() {
+    if (isSubscript()) {
+        toggleSubscript();
+    }
     mType ^= MASK(Superscript);
     return *this;
 }
@@ -135,9 +150,34 @@ nchar& nchar::toggleType(Type type) {
     return *this;
 }
 
-bool nchar::getType() const { return mType; }
+bool nchar::isBold() const { return mType & MASK(Bold); }
+
+bool nchar::isItalic() const { return mType & MASK(Italic); }
+
+bool nchar::isUnderline() const { return mType & MASK(Underline); }
+
+bool nchar::isStrikethrough() const { return mType & MASK(Strikethrough); }
+
+bool nchar::isSubscript() const { return mType & MASK(Subscript); }
+
+bool nchar::isSuperscript() const { return mType & MASK(Superscript); }
 
 #undef MASK
+
+int nchar::getType() const { return mType; }
+
 void nchar::setFontSize(int size) { mFontSize = size; }
 
 int nchar::getFontSize() const { return mFontSize; }
+
+void nchar::setFontId(std::size_t id) { mFontId = id; }
+
+std::size_t nchar::getFontId() const { return mFontId; }
+
+void nchar::setColor(Color color) { mColor = color; }
+
+Color nchar::getColor() const { return mColor; }
+
+void nchar::setBackgroundColor(Color color) { mBackgroundColor = color; }
+
+Color nchar::getBackgroundColor() const { return mBackgroundColor; }

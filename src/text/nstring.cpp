@@ -9,8 +9,8 @@ nstring::nstring() {}
 nstring::nstring(const nchar& other) { *this = other; }
 
 nstring::nstring(const nstring& other)
-    : mChars{other.mChars}, mLength{other.mLength}, mFontSize{other.mFontSize} {
-}
+    : mChars{other.mChars}, mLength{other.mLength}, mFontSize{other.mFontSize},
+      mFontId{other.mFontId} {}
 
 nstring::nstring(const std::string& str) { *this = str; }
 
@@ -20,6 +20,7 @@ nstring& nstring::operator=(const char* str) {
     std::string s = str;
     *this = s;
     mFontSize = constants::document::default_font_size;
+    mFontId = constants::document::default_font_id;
     return *this;
 }
 
@@ -28,6 +29,7 @@ nstring& nstring::operator=(const nchar& other) {
     mChars.push_back(other);
     mLength = 1;
     mFontSize = other.getFontSize();
+    mFontId = other.getFontId();
     return *this;
 }
 
@@ -35,6 +37,7 @@ nstring& nstring::operator=(const nstring& other) {
     mChars = other.mChars;
     mLength = other.mLength;
     mFontSize = other.mFontSize;
+    mFontId = other.mFontId;
     return *this;
 }
 
@@ -78,9 +81,12 @@ bool nstring::operator!=(const nstring& other) const {
 
 nstring& nstring::operator+=(const nstring& other) {
     mFontSize = std::max(mFontSize, other.getFontSize());
+    if (mFontId != other.getFontId()) mFontId = -1;
+
     for (int i = 0; i < other.length(); ++i) {
         mChars.push_back(other.mChars[i]);
     }
+    mLength += other.length();
 
     return *this;
 }
@@ -94,6 +100,8 @@ nstring nstring::operator+(const nstring& other) const {
 
 nstring& nstring::operator+=(const nchar& other) {
     mFontSize = std::max(mFontSize, other.getFontSize());
+    if (mFontId != other.getFontId()) mFontId = -1;
+
     mChars.push_back(other);
     mLength++;
     return *this;
@@ -196,35 +204,52 @@ nstring& nstring::toggleSuperscript(std::size_t start, std::size_t length) {
 nstring& nstring::toggleType(std::size_t start, std::size_t length,
                              nchar::Type type) {
     if (start >= mLength) return *this;
+
+    // std::cout << "typeOn: " << typeOn << std::endl;
+    // std::cout << "start: " << start << std::endl;
+    // std::cout << "length: " << mLength << std::endl;
+
     length = std::min(length, mLength - start);
 
-    bool typeOn = !isSameType(*this, type, start, length);
+    bool typeOn = isSameType(*this, type, start, length);
+
     for (int i = start; i < start + length; ++i) {
-        if (mChars[i].getType() ^ MASK(type)) {
-            switch (type) {
-                case nchar::Bold:
+        switch (type) {
+            case nchar::Bold:
+                if (mChars[i].isBold() == typeOn) {
                     mChars[i].toggleBold();
-                    break;
-                case nchar::Italic:
+                }
+                break;
+            case nchar::Italic:
+                if (mChars[i].isItalic() == typeOn) {
                     mChars[i].toggleItalic();
-                    break;
-                case nchar::Underline:
+                }
+                break;
+            case nchar::Underline:
+                if (mChars[i].isUnderline() == typeOn) {
                     mChars[i].toggleUnderline();
-                    break;
-                case nchar::Strikethrough:
+                }
+                break;
+            case nchar::Strikethrough:
+                if (mChars[i].isStrikethrough() == typeOn) {
                     mChars[i].toggleStrikethrough();
-                    break;
-                case nchar::Subscript:
+                }
+                break;
+            case nchar::Subscript:
+                if (mChars[i].isSubscript() == typeOn) {
                     mChars[i].toggleSubscript();
-                    break;
-                case nchar::Superscript:
+                }
+                break;
+            case nchar::Superscript:
+                if (mChars[i].isSuperscript() == typeOn) {
                     mChars[i].toggleSuperscript();
-                    break;
-                default:
-                    break;
-            }
+                }
+                break;
+            default:
+                break;
         }
     }
+
     return *this;
 }
 
@@ -236,3 +261,12 @@ void nstring::setFontSize(int size) {
 }
 
 int nstring::getFontSize() const { return mFontSize; }
+
+void nstring::setFontId(std::size_t id) {
+    mFontId = id;
+    for (int i = 0; i < mChars.size(); ++i) {
+        mChars[i].setFontId(id);
+    }
+}
+
+int nstring::getFontId() const { return mFontId; }

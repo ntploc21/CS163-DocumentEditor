@@ -3,8 +3,10 @@
 
 #include <optional>
 
+#include "DocumentFont.hpp"
 #include "FontFactory.hpp"
 #include "cursor.hpp"
+#include "dictionary/dictionary.hpp"
 #include "raylib.h"
 #include "rope/rope.hpp"
 
@@ -14,6 +16,9 @@ public:
     Document(std::string filename);
 
     void set_font_factory(FontFactory* fonts);
+    void set_document_fonts(DocumentFont* docFonts);
+
+    void set_dictionary(Dictionary* dictionary);
 
     Rope& rope();
     const Rope& rope() const;
@@ -64,8 +69,21 @@ public:
     void turn_off_selecting();
     bool is_selecting() const;
 
+public:
+    bool check_word_at_cursor();
+    std::vector< nstring > suggest_at_cursor();
+
+public:
+    void underline_selected();
+    void strikethrough_selected();
+    void bold_selected();
+    void italic_selected();
+    void subscript_selected();
+    void superscript_selected();
+
 private:
     void processWordWrap();
+    // void processWordWrap2();
 
 private:
     struct Snapshot {
@@ -81,10 +99,15 @@ private:
     Cursor mSelectOrig{-1, -1};
 
     std::vector< Vector2 > displayPositions{};
+    std::vector< bool > validWords{};
 
     std::string mFilename{"Untitled"};
 
+    Dictionary* mDictionary;
+
     FontFactory* mFonts;
+    DocumentFont* mDocFonts;
+
     bool mIsSelecting{false};
 };
 

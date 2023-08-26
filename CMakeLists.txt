@@ -36,6 +36,8 @@ endif()
 # Include libraries and source files
 include_directories(src)
 add_executable(${PROJECT_NAME}
+    src/constants.hpp
+
     src/main.cpp
     src/utils.cpp
     
@@ -63,6 +65,7 @@ add_executable(${PROJECT_NAME}
     src/document.cpp
 
     src/FontFactory.cpp
+    src/DocumentFont.cpp
 )
 
 ######################################

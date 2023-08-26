@@ -14,6 +14,14 @@ Document::Document(std::string filename) : mFilename{filename} {
 
 void Document::set_font_factory(FontFactory* fonts) { mFonts = fonts; }
 
+void Document::set_document_fonts(DocumentFont* docFonts) {
+    mDocFonts = docFonts;
+}
+
+void Document::set_dictionary(Dictionary* dictionary) {
+    mDictionary = dictionary;
+}
+
 Rope& Document::rope() { return mRope; }
 
 const Rope& Document::rope() const { return mRope; }
@@ -278,12 +286,282 @@ void Document::turn_off_selecting() {
 
 bool Document::is_selecting() const { return mIsSelecting; }
 
+bool Document::check_word_at_cursor() {
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    int left = pos, right = pos;
+
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
+
+    nstring word = mRope.subnstr(left, right - left);
+    return mDictionary->search(word);
+}
+
+std::vector< nstring > Document::suggest_at_cursor() {
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    int left = pos, right = pos;
+
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
+
+    nstring word = mRope.subnstr(left, right - left);
+    return mDictionary->suggest(word);
+}
+
+void Document::underline_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.toggleUnderline(0, selected.length());
+
+    mRope = mRope.replace(start, end - start, selected);
+
+    processWordWrap();
+}
+
+void Document::strikethrough_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.toggleStrikethrough(0, selected.length());
+
+    mRope = mRope.replace(start, end - start, selected);
+
+    processWordWrap();
+}
+
+void Document::bold_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.toggleBold(0, selected.length());
+
+    mRope = mRope.replace(start, end - start, selected);
+
+    processWordWrap();
+}
+
+void Document::italic_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.toggleItalic(0, selected.length());
+
+    mRope = mRope.replace(start, end - start, selected);
+
+    processWordWrap();
+}
+
+void Document::subscript_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.toggleSubscript(0, selected.length());
+
+    mRope = mRope.replace(start, end - start, selected);
+
+    processWordWrap();
+}
+
+void Document::superscript_selected() {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.toggleSuperscript(0, selected.length());
+
+    mRope = mRope.replace(start, end - start, selected);
+
+    processWordWrap();
+}
+
+// void Document::processWordWrap() {
+//     float fontSize = 36.0f;
+//     nstring content = mRope.to_nstring() + nstring("?");
+
+//     bool wordWrap = 1;
+//     Font font = mFonts->Get("Arial");
+//     Rectangle rec = {0, 0,
+//                      constants::document::default_view_width -
+//                          2 * constants::document::margin_left,
+//                      constants::document::default_view_height -
+//                          2 * constants::document::margin_top};
+//     float spacing = 0.0f;
+
+//     displayPositions.clear();
+
+//     int length = content.length();  // Total length in bytes of the text,
+//                                     // scanned by codepoints in loop
+
+//     float textOffsetY = 0.0f;  // Offset between lines (on line break '\n')
+//     float textOffsetX = 0.0f;  // Offset X to next character to draw
+
+//     float scaleFactor =
+//         fontSize / (float)font.baseSize;  // Character rectangle scaling
+//         factor
+
+//     // Word/character wrapping mechanism variables
+//     enum { MEASURE_STATE = 0, DRAW_STATE = 1 };
+//     int state = wordWrap ? MEASURE_STATE : DRAW_STATE;
+
+//     int startLine = -1;  // Index where to begin drawing (where a line
+//     begins) int endLine = -1;    // Index where to stop drawing (where a line
+//     ends) int lastk = -1;      // Holds last value of the character position
+
+//     for (int i = 0, k = 0; i < length; i++, k++) {
+//         const char* text = content[i].getChar();
+
+//         // Get next codepoint from byte string and glyph index in font
+//         int codepointByteCount = 0;
+//         int codepoint = GetCodepoint(text, &codepointByteCount);
+//         int index = GetGlyphIndex(font, codepoint);
+
+//         // NOTE: Normally we exit the decoding sequence as soon as a bad
+//         // byte is found (and return 0x3f) but we need to draw all of the
+//         // bad bytes using the '?' symbol moving one byte
+//         if (codepoint == 0x3f) codepointByteCount = 1;
+//         codepointByteCount = 1;
+//         i += (codepointByteCount - 1);
+
+//         float glyphWidth = 0;
+//         if (codepoint != '\n') {
+//             glyphWidth = (font.glyphs[index].advanceX == 0)
+//                              ? font.recs[index].width * scaleFactor
+//                              : font.glyphs[index].advanceX * scaleFactor;
+
+//             if (i + 1 < length) glyphWidth = glyphWidth + spacing;
+//         }
+
+//         // NOTE: When wordWrap is ON we first measure how much of the text
+//         // we can draw before going outside of the rec container We store
+//         // this info in startLine and endLine, then we change states, draw
+//         // the text between those two variables and change states again and
+//         // again recursively until the end of the text (or until we get
+//         // outside of the container). When wordWrap is OFF we don't need the
+//         // measure state so we go to the drawing state immediately and begin
+//         // drawing on the next line before we can get outside the container.
+//         if (state == MEASURE_STATE) {
+//             // TODO: There are multiple types of spaces in UNICODE, maybe
+//             // it's a good idea to add support for more Ref:
+//             // http://jkorpela.fi/chars/spaces.html
+//             if ((codepoint == ' ') || (codepoint == '\t') ||
+//                 (codepoint == '\n'))
+//                 endLine = i;
+
+//             if ((textOffsetX + glyphWidth) > rec.width) {
+//                 endLine = (endLine < 1) ? i : endLine;
+//                 if (i == endLine) endLine -= codepointByteCount;
+//                 if ((startLine + codepointByteCount) == endLine)
+//                     endLine = (i - codepointByteCount);
+
+//                 state = !state;
+//             } else if ((i + 1) == length) {
+//                 endLine = i;
+//                 state = !state;
+//             } else if (codepoint == '\n')
+//                 state = !state;
+
+//             if (state == DRAW_STATE) {
+//                 textOffsetX = 0;
+//                 i = startLine;
+//                 glyphWidth = 0;
+
+//                 // Save character position when we switch states
+//                 int tmp = lastk;
+//                 lastk = k - 1;
+//                 k = tmp;
+//             }
+//         } else {
+//             if (codepoint == '\n') {
+//                 if (!wordWrap) {
+//                     textOffsetY +=
+//                         (font.baseSize + font.baseSize / 2) * scaleFactor;
+//                     textOffsetX = 0;
+//                 }
+
+//                 displayPositions.push_back({textOffsetX, textOffsetY});
+//             } else {
+//                 if (!wordWrap && ((textOffsetX + glyphWidth) > rec.width)) {
+//                     textOffsetY +=
+//                         (font.baseSize + font.baseSize / 2) * scaleFactor;
+//                     textOffsetX = 0;
+//                 }
+
+//                 // When text overflows rectangle height limit, just stop
+//                 // drawing
+//                 if ((textOffsetY + font.baseSize * scaleFactor) > rec.height)
+//                     break;
+
+//                 // Draw current character glyph
+//                 if ((codepoint != ' ') && (codepoint != '\t')) {
+//                     // displayPositions.push_back({textOffsetX,
+//                     // textOffsetY});
+//                 }
+
+//                 displayPositions.push_back({textOffsetX, textOffsetY});
+//             }
+
+//             if (wordWrap && (i == endLine)) {
+//                 textOffsetY +=
+//                     (font.baseSize + font.baseSize / 2) * scaleFactor;
+//                 textOffsetX = 0;
+//                 startLine = endLine;
+//                 endLine = -1;
+//                 glyphWidth = 0;
+//                 k = lastk;
+
+//                 state = !state;
+//             }
+//         }
+
+//         if ((textOffsetX != 0) || (codepoint != ' '))
+//             textOffsetX += glyphWidth;  // avoid leading spaces
+//     }
+// }
+
 void Document::processWordWrap() {
-    float fontSize = 36.0f;
+    auto getFont = [&](const nchar& c) -> Font {
+        if (c.isBold() && c.isItalic()) {
+            return mDocFonts->get_bold_italic_font(c.getFontId());
+        } else if (c.isBold()) {
+            return mDocFonts->get_bold_font(c.getFontId());
+        } else if (c.isItalic()) {
+            return mDocFonts->get_italic_font(c.getFontId());
+        }
+        return mDocFonts->get_font(c.getFontId());
+    };
+
     nstring content = mRope.to_nstring() + nstring("?");
+    int length = content.length();
 
     bool wordWrap = 1;
-    Font font = mFonts->Get("Arial");
     Rectangle rec = {0, 0,
                      constants::document::default_view_width -
                          2 * constants::document::margin_left,
@@ -293,14 +571,8 @@ void Document::processWordWrap() {
 
     displayPositions.clear();
 
-    int length = content.length();  // Total length in bytes of the text,
-                                    // scanned by codepoints in loop
-
-    float textOffsetY = 0.0f;  // Offset between lines (on line break '\n')
-    float textOffsetX = 0.0f;  // Offset X to next character to draw
-
-    float scaleFactor =
-        fontSize / (float)font.baseSize;  // Character rectangle scaling factor
+    float textOffsetX = 0.0f;
+    float textOffsetY = 0.0f;
 
     // Word/character wrapping mechanism variables
     enum { MEASURE_STATE = 0, DRAW_STATE = 1 };
@@ -310,42 +582,45 @@ void Document::processWordWrap() {
     int endLine = -1;    // Index where to stop drawing (where a line ends)
     int lastk = -1;      // Holds last value of the character position
 
+    float curLineHeight = 0.0f;
+
     for (int i = 0, k = 0; i < length; i++, k++) {
-        const char* text = content[i].getChar();
+        Font charFont = getFont(content[i]);
+        const char* charText = content[i].getChar();
+
+        // Vector2 charSize =
+        //     utils::measure_text(charFont, content[i].getChar(), 36, 2);
+        std::size_t charFontSize = content[i].getFontSize();
+
+        if (content[i].isSuperscript() || content[i].isSubscript()) {
+            charFontSize /= 2;
+        }
+
+        float scaleFactor = charFontSize / (float)charFont.baseSize;
+
+        curLineHeight =
+            std::max(curLineHeight,
+                     (charFont.baseSize + charFont.baseSize / 2) * scaleFactor);
 
         // Get next codepoint from byte string and glyph index in font
         int codepointByteCount = 0;
-        int codepoint = GetCodepoint(text, &codepointByteCount);
-        int index = GetGlyphIndex(font, codepoint);
+        int codepoint = GetCodepoint(charText, &codepointByteCount);
+        int index = GetGlyphIndex(charFont, codepoint);
 
-        // NOTE: Normally we exit the decoding sequence as soon as a bad
-        // byte is found (and return 0x3f) but we need to draw all of the
-        // bad bytes using the '?' symbol moving one byte
         if (codepoint == 0x3f) codepointByteCount = 1;
         codepointByteCount = 1;
         i += (codepointByteCount - 1);
 
         float glyphWidth = 0;
         if (codepoint != '\n') {
-            glyphWidth = (font.glyphs[index].advanceX == 0)
-                             ? font.recs[index].width * scaleFactor
-                             : font.glyphs[index].advanceX * scaleFactor;
+            glyphWidth = (charFont.glyphs[index].advanceX == 0)
+                             ? charFont.recs[index].width * scaleFactor
+                             : charFont.glyphs[index].advanceX * scaleFactor;
 
             if (i + 1 < length) glyphWidth = glyphWidth + spacing;
         }
 
-        // NOTE: When wordWrap is ON we first measure how much of the text
-        // we can draw before going outside of the rec container We store
-        // this info in startLine and endLine, then we change states, draw
-        // the text between those two variables and change states again and
-        // again recursively until the end of the text (or until we get
-        // outside of the container). When wordWrap is OFF we don't need the
-        // measure state so we go to the drawing state immediately and begin
-        // drawing on the next line before we can get outside the container.
         if (state == MEASURE_STATE) {
-            // TODO: There are multiple types of spaces in UNICODE, maybe
-            // it's a good idea to add support for more Ref:
-            // http://jkorpela.fi/chars/spaces.html
             if ((codepoint == ' ') || (codepoint == '\t') ||
                 (codepoint == '\n'))
                 endLine = i;
@@ -375,37 +650,27 @@ void Document::processWordWrap() {
             }
         } else {
             if (codepoint == '\n') {
-                if (!wordWrap) {
-                    textOffsetY +=
-                        (font.baseSize + font.baseSize / 2) * scaleFactor;
-                    textOffsetX = 0;
-                }
-
                 displayPositions.push_back({textOffsetX, textOffsetY});
             } else {
-                if (!wordWrap && ((textOffsetX + glyphWidth) > rec.width)) {
-                    textOffsetY +=
-                        (font.baseSize + font.baseSize / 2) * scaleFactor;
-                    textOffsetX = 0;
-                }
-
                 // When text overflows rectangle height limit, just stop
                 // drawing
-                if ((textOffsetY + font.baseSize * scaleFactor) > rec.height)
+                if ((textOffsetY + charFont.baseSize * scaleFactor) >
+                    rec.height)
                     break;
 
-                // Draw current character glyph
-                if ((codepoint != ' ') && (codepoint != '\t')) {
-                    // displayPositions.push_back({textOffsetX,
-                    // textOffsetY});
-                }
+                int offsetY = charFont.baseSize * scaleFactor;
 
-                displayPositions.push_back({textOffsetX, textOffsetY});
+                displayPositions.push_back({
+                    textOffsetX, textOffsetY
+                    // + (content[i].isSubscript() ? offsetY : 0)
+                });
             }
 
             if (wordWrap && (i == endLine)) {
-                textOffsetY +=
-                    (font.baseSize + font.baseSize / 2) * scaleFactor;
+                textOffsetY += curLineHeight;
+                // textOffsetY +=
+                //     (charFont.baseSize + charFont.baseSize / 2) *
+                //     scaleFactor;
                 textOffsetX = 0;
                 startLine = endLine;
                 endLine = -1;
@@ -413,6 +678,8 @@ void Document::processWordWrap() {
                 k = lastk;
 
                 state = !state;
+
+                curLineHeight = 0.0f;
             }
         }
 

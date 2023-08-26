@@ -89,16 +89,19 @@ namespace rope {
 
         if (index == 0) return 0;
 
-        if (index == mLength - 1) {
-            if (mText[index] != ' ' && mText[index] != '\n' &&
-                mText[index] != '\t')
-                return 1;
-            return 0;
-        }
+        // if (index == mLength - 1) {
+        //     if (mText[index] != ' ' && mText[index] != '\n' &&
+        //         mText[index] != '\t')
+        //         return 1;
+        //     return 0;
+        // }
 
         std::size_t word_index =
             upper_bound(mWordPos.begin(), mWordPos.end(), (int)index) -
             mWordPos.begin();
+
+        std::cout << word_index << " _ " << index << std::endl;
+
         if (word_index == 0) return 0;
         return word_index - 1;
     }

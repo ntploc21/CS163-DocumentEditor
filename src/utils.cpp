@@ -1,5 +1,6 @@
 #include "utils.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 #include "constants.hpp"
@@ -47,5 +48,17 @@ namespace utils {
         if (a.y != b.y) return a.y < b.y;
         return a.x < b.x;
     }
+
+    Vector2 get_init_pos() {
+        return Vector2{
+            1.0f * std::max(0, (GetScreenWidth() -
+                                constants::document::default_view_width) /
+                                   2) -
+                1 + constants::document::padding_left,
+            1.0f * constants::document::margin_top +
+                constants::document::padding_top};
+    }
+
+    Vector2 sum(Vector2 a, Vector2 b) { return Vector2{a.x + b.x, a.y + b.y}; }
 
 }  // namespace utils

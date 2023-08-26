@@ -20,12 +20,17 @@ void Editor::Init() {
     InitWindow(constants::window::width, constants::window::height,
                constants::window::title.c_str());
 
+    SetExitKey(KEY_NULL);
     MaximizeWindow();
 
     LoadResources();
 
     currentDocument().set_font_factory(fonts);
+    currentDocument().set_document_fonts(mDocumentFont);
 
+    currentDocument().set_dictionary(mDictionary);
+
+    mDocumentFont->set_font_factory(fonts);
     PrepareKeybinds();
 }
 
@@ -66,6 +71,9 @@ void Editor::Update([[maybe_unused]] float dt) {
         case EditorMode::Insert:
             InsertMode();
             break;
+        case EditorMode::Search:
+            SearchMode();
+            break;
     }
 }
 
@@ -85,6 +93,17 @@ void Editor::DrawEditor() {
 }
 
 void Editor::DrawEditorText() {
+    auto getFont = [&](const nchar& c) -> Font {
+        if (c.isBold() && c.isItalic()) {
+            return mDocumentFont->get_bold_italic_font(c.getFontId());
+        } else if (c.isBold()) {
+            return mDocumentFont->get_bold_font(c.getFontId());
+        } else if (c.isItalic()) {
+            return mDocumentFont->get_italic_font(c.getFontId());
+        }
+        return mDocumentFont->get_font(c.getFontId());
+    };
+
     int documentWidth = constants::document::default_view_width;
     int documentHeight = constants::document::default_view_height;
     int margin_top = constants::document::margin_top;
@@ -126,33 +145,70 @@ void Editor::DrawEditorText() {
                 std::size_t end = std::min(select_end_idx, next_line_start - 1);
 
                 for (std::size_t i = start; i < end; ++i) {
+                    Font charFont = getFont(content[i]);
+                    std::size_t charFontSize = content[i].getFontSize();
+
                     Vector2 pos = currentDocument().get_display_positions(i);
                     Vector2 charSize = utils::measure_text(
-                        fonts->Get("Arial"), content[i].getChar(), 36, 2);
+                        charFont, content[i].getChar(), charFontSize, 2);
 
-                    DrawRectangle(
-                        1.0f * std::max(
-                                   0, (GetScreenWidth() - documentWidth) / 2) -
-                            1 + constants::document::padding_left + pos.x,
-                        1.0f * margin_top + constants::document::padding_top +
-                            pos.y,
-                        charSize.x + 1, line_height, Color{109, 158, 235, 255});
+                    if (content[i].isSuperscript() ||
+                        content[i].isSubscript()) {
+                        charSize.x /= 2, charSize.y /= 2;
+                        charFontSize /= 2;
+                    }
+
+                    Vector2 rendered_pos =
+                        utils::sum(utils::get_init_pos(), pos);
+
+                    DrawRectangle(rendered_pos.x, rendered_pos.y,
+                                  charSize.x + 1, line_height, LIGHTGRAY);
+                    //   Color{109, 158, 235, 255});
                 }
             }
         }
 
         // draw text
         for (std::size_t i = line_start; i < next_line_start; ++i) {
-            Vector2 pos = currentDocument().get_display_positions(i);
+            Font charFont = getFont(content[i]);
+            std::size_t charFontSize = content[i].getFontSize();
+            Color textColor = content[i].getColor();
 
-            DrawTextEx(
-                fonts->Get("Arial"), content[i].getChar(),
-                Vector2{
-                    1.0f * std::max(0, (GetScreenWidth() - documentWidth) / 2) -
-                        1 + constants::document::padding_left + pos.x,
-                    1.0f * margin_top + constants::document::padding_top +
-                        pos.y},
-                36, 2, BLACK);
+            Vector2 pos = currentDocument().get_display_positions(i);
+            Vector2 charSize = utils::measure_text(
+                charFont, content[i].getChar(), charFontSize, 2);
+
+            if (content[i].isSuperscript() || content[i].isSubscript()) {
+                charSize.x /= 2, charSize.y /= 2;
+                charFontSize /= 2;
+            }
+
+            if (content[i].isSubscript()) {
+                pos.y += charSize.y;
+            }
+
+            DrawTextEx(charFont, content[i].getChar(),
+                       utils::sum(utils::get_init_pos(), pos), charFontSize, 2,
+                       textColor);
+
+            if (content[i].isUnderline()) {
+                DrawLineEx(
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x, pos.y + charSize.y}),
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x + charSize.x, pos.y + charSize.y}),
+                    1.5f, textColor);
+            }
+
+            if (content[i].isStrikethrough()) {
+                DrawLineEx(
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x, pos.y + 2 * charSize.y / 3}),
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x + charSize.x,
+                                       pos.y + 2 * charSize.y / 3}),
+                    1.5f, textColor);
+            }
         }
     }
 
@@ -162,12 +218,11 @@ void Editor::DrawEditorText() {
     Vector2 cursor_display_pos =
         currentDocument().get_display_positions(cursor_pos);
 
-    DrawRectangle(1.0f * std::max(0, (GetScreenWidth() - documentWidth) / 2) -
-                      1 + constants::document::padding_left +
-                      cursor_display_pos.x,
-                  1.0f * margin_top - 1 + constants::document::padding_top +
-                      cursor_display_pos.y,
-                  1.5f, 36, ORANGE);
+    Vector2 cursor_rendered_pos =
+        utils::sum(utils::get_init_pos(), cursor_display_pos);
+
+    DrawRectangle(cursor_rendered_pos.x, cursor_rendered_pos.y, 1.5f, 36,
+                  ORANGE);
 }
 
 void Editor::NormalMode() {}
@@ -179,8 +234,6 @@ void Editor::InsertMode() {
 
         currentDocument().set_cursor(cursor);
         currentDocument().turn_off_selecting();
-
-        std::cout << "g" << std::endl;
     } else {
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
             if (!leftMousePrevDown) {
@@ -215,12 +268,28 @@ void Editor::InsertMode() {
     currentDocument().insert_at_cursor(nstring(nchar(key)));
 }
 
+void Editor::SearchMode() {}
+
 Document& Editor::currentDocument() { return mDocument; }
 
 const Document& Editor::currentDocument() const { return mDocument; }
 
 void Editor::LoadResources() {
     fonts->Load("Arial", "assets/fonts/SVN-Arial 3.ttf");
+    fonts->Load("Arial Bold", "assets/fonts/SVN-Arial 3 bold.ttf");
+    fonts->Load("Arial Italic", "assets/fonts/SVN-Arial 3 italic.ttf");
+    fonts->Load("Arial Bold Italic",
+                "assets/fonts/SVN-Arial 3 bold italic.ttf");
+    FontInfo info{
+        "Arial",
+        "Arial Bold",
+        "Arial Italic",
+        "Arial Bold Italic",
+    };
+
+    mDocumentFont->registerFont(info);
+
+    // mDictionary->loadDatabase(constants::dictionary::default_database_path);
 }
 
 void Editor::PrepareKeybinds() {
@@ -334,6 +403,30 @@ void Editor::PrepareKeybinds() {
         },
         true);
 
+    // select the next word
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_RIGHT},
+        [&]() {
+            if (!currentDocument().is_selecting()) {
+                currentDocument().turn_on_selecting();
+                currentDocument().select_orig() = currentDocument().cursor();
+            }
+            currentDocument().cursor_move_next_word();
+        },
+        true);
+
+    // select the previous word
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_LEFT},
+        [&]() {
+            if (!currentDocument().is_selecting()) {
+                currentDocument().turn_on_selecting();
+                currentDocument().select_orig() = currentDocument().cursor();
+            }
+            currentDocument().cursor_move_prev_word();
+        },
+        true);
+
     // move to the start of the line
     mKeybind.insert(
         {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_RIGHT},
@@ -380,6 +473,101 @@ void Editor::PrepareKeybinds() {
             currentDocument().insert_at_cursor(text);
         },
         true);
+
+    /* PARAGRAPH STYLE */
+    // underline
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_U},
+        [&]() {
+            if (!currentDocument().is_selecting()) return;
+            currentDocument().save_snapshot();
+            currentDocument().underline_selected();
+        },
+        true);
+
+    // strikethrough
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_F2},
+        [&]() {
+            if (!currentDocument().is_selecting()) return;
+            currentDocument().save_snapshot();
+            currentDocument().strikethrough_selected();
+        },
+        true);
+
+    // bold
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_B},
+        [&]() {
+            if (!currentDocument().is_selecting()) return;
+            currentDocument().save_snapshot();
+            currentDocument().bold_selected();
+        },
+        true);
+    // italic
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_I},
+        [&]() {
+            if (!currentDocument().is_selecting()) return;
+            currentDocument().save_snapshot();
+            currentDocument().italic_selected();
+        },
+        true);
+
+    // superscript
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_EQUAL},
+        [&]() {
+            if (!currentDocument().is_selecting()) return;
+            currentDocument().save_snapshot();
+            currentDocument().superscript_selected();
+        },
+        true);
+
+    // subscript
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_MINUS},
+        [&]() {
+            if (!currentDocument().is_selecting()) return;
+            currentDocument().save_snapshot();
+            currentDocument().subscript_selected();
+        },
+        true);
+
+    /* */
+    mKeybind.insert(
+        {KEY_ESCAPE},
+        [&]() {
+            if (mMode == EditorMode::Insert) {
+                currentDocument().turn_off_selecting();
+            } else if (mMode == EditorMode::Search) {
+                mMode = EditorMode::Insert;
+            }
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_F}, [&]() { mMode = EditorMode::Search; },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_H},
+        [&]() {
+            bool valid_word = currentDocument().check_word_at_cursor();
+            std::vector< nstring > suggestions =
+                currentDocument().suggest_at_cursor();
+
+            std::cout << "The word is "
+                      << (valid_word ? "valid"
+                                     : "not exist in normal English vocabulary")
+                      << std::endl;
+
+            for (std::size_t i = 0; i < std::min(11, (int)suggestions.size());
+                 ++i) {
+                std::cout << i << ": " << suggestions[i] << std::endl;
+            }
+        },
+        false);
 }
 
 Editor::Editor() {}
