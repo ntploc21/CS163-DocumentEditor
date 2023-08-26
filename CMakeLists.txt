@@ -36,6 +36,9 @@ endif()
 # Include libraries and source files
 include_directories(src)
 add_executable(${PROJECT_NAME}
+    src/constants.hpp
+    src/raygui_impl.cpp
+
     src/main.cpp
     src/utils.cpp
     
@@ -59,6 +62,11 @@ add_executable(${PROJECT_NAME}
 
     src/keybind/keybind.cpp
     src/keybind/node.cpp
+
+    src/document/document.cpp
+
+    src/FontFactory.cpp
+    src/DocumentFont.cpp
 )
 
 ######################################
@@ -107,7 +115,7 @@ add_executable(dictionary_test
 # target_compile_options(rope_test PRIVATE -Wall -Wextra -pedantic -Werror -Wfatal-errors)
 
 # In case that you have ${PNG_LIBRARY} set to support copy/paste images on Linux
-#set(CLIP_X11_PNG_LIBRARY "${PNG_LIBRARY}")
+# set(CLIP_X11_PNG_LIBRARY "${PNG_LIBRARY}")
 
 # Add clip subdirectory to compile the library
 # add_subdirectory(clip)

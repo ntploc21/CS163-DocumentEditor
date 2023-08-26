@@ -44,12 +44,36 @@ public:
     nstring& toggleSubscript(std::size_t start, std::size_t length);
     nstring& toggleSuperscript(std::size_t start, std::size_t length);
 
+    void setFontSize(int size);
+    int getFontSize() const;
+
+    void setFontId(std::size_t id);
+    int getFontId() const;
+
+    void setColor(Color color);
+    Color getColor() const;
+
+    void setBackgroundColor(Color color);
+    Color getBackgroundColor() const;
+
+    void setLink(std::string link);
+    std::string getLink() const;
+
 private:
     nstring& toggleType(std::size_t start, std::size_t length,
                         nchar::Type type);
 
     std::vector< nchar > mChars{};
     std::size_t mLength{};
+
+    int mFontSize{constants::document::default_font_size};
+
+    int mFontId{0};
+
+    Color mColor{constants::document::default_text_color};
+    Color mBackgroundColor{constants::document::default_background_color};
+
+    std::string mLink{};
 };
 
 #endif  // TEXT_nstring_HPP

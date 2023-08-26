@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include "node.hpp"
 #include "rope/node.hpp"
 
 namespace rope {
@@ -36,13 +37,13 @@ namespace rope {
     nstring Concatenation::subnstr(std::size_t start,
                                    std::size_t length) const {
         if (start >= mWeight) {
-            return mRight ? mRight->substr(start - mWeight, length) : "";
+            return mRight ? mRight->subnstr(start - mWeight, length) : "";
         }
 
-        std::string ans = mLeft ? mLeft->substr(start, length) : "";
+        nstring ans = mLeft ? mLeft->subnstr(start, length) : "";
 
         if (start + length > mWeight) {
-            ans += mRight ? mRight->substr(0, length - (mWeight - start)) : "";
+            ans += mRight ? mRight->subnstr(0, length - (mWeight - start)) : "";
         }
         return ans;
     }
@@ -91,12 +92,32 @@ namespace rope {
         return ans;
     }
 
-    std::size_t Concatenation::find_line_start(std::size_t index) const {
-        if (index >= mLineCount) throw std::out_of_range("Index out of range");
-        if (index < mLineWeight) {
-            return mLeft->find_line_start(index);
+    std::pair< std::size_t, std::size_t > Concatenation::pos_from_index(
+        std::size_t index) const {
+        index = std::min(index, mLength);
+
+        if (index < mWeight) {
+            return mLeft->pos_from_index(index);
         }
-        return mRight->find_line_start(index - mLineWeight) + mWeight;
+        auto [line_idx, line_pos] = mRight->pos_from_index(index - mWeight);
+
+        if (line_idx == 0) {
+            line_pos +=
+                mWeight -
+                (mLeft->line_count()
+                     ? mLeft->find_line_feed(mLeft->line_count() - 1) + 1
+                     : 0);
+        }
+
+        return std::make_pair(line_idx + mLineWeight, line_pos);
+    }
+    std::size_t Concatenation::find_line_feed(std::size_t index) const {
+        // if (index >= mLineCount) throw std::out_of_range("Index out of
+        // range");
+        if (index < mLineWeight) {
+            return mLeft->find_line_feed(index);
+        }
+        return mRight->find_line_feed(index - mLineWeight) + mWeight;
     }
 
     std::size_t Concatenation::find_word_start(std::size_t index) const {
@@ -105,6 +126,26 @@ namespace rope {
             return mLeft->find_word_start(index);
         }
         return mRight->find_word_start(index - mWordWeight) + mWeight;
+    }
+
+    std::size_t Concatenation::find_word_at(std::size_t index) const {
+        if (index >= mLength) throw std::out_of_range("Index out of range");
+
+        if (index == 0) return 0;
+
+        if (index == mLength - 1) {
+            if (operator[](index) != ' ' && operator[](index) != '\n' &&
+                                            operator[](index) != '\t')
+                return 1;
+            return 0;
+        }
+
+        if (index < mWeight) {
+            return mLeft->find_word_at(index);
+        }
+        std::size_t word_index =
+            mRight->find_word_at(index - mWeight) + mWordWeight;
+        return word_index;
     }
 
     std::size_t Concatenation::line_count() const { return mLineCount; }

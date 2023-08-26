@@ -1,8 +1,17 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
+#include "DocumentFont.hpp"
+#include "FontFactory.hpp"
+#include "dictionary/dictionary.hpp"
+#include "document/document.hpp"
 #include "keybind/keybind.hpp"
 #include "raylib.h"
+#include "search/search.hpp"
+
+enum class EditorMode { Normal, Insert, Search };
+
+enum class EditorPage { None, Link, Color };
 
 /**
  * @brief The application class that represents the application.
@@ -66,11 +75,46 @@ private:
 
     void PrepareKeybinds();
 
+    void DrawEditor();
+    void DrawEditorText();
+
+    void NormalMode();
+
+    void InsertMode();
+
+    void SearchMode();
+
+    Document& currentDocument();
+
+    const Document& currentDocument() const;
+
+    void DrawOutline();
+
+    void DrawPage();
+
+    void SetPage(EditorPage page);
+
+private:
+    void DrawLinkPage(float initX, float initY);
+    void setLinkPage(std::string url);
+    std::string currentURL = "";
+
+    void DrawColorPage(float initX, float initY);
+    Color currentColor = BLACK;
+    Color currentBackgroundColor = Color{0, 0, 0, 0};
+
 private:
     bool closed = false;
-    Keybind mKeybind;
+    Keybind mKeybind{};
+    Document mDocument{};
+    Search mSearch{};
+    Dictionary* mDictionary{new Dictionary};
 
-    Font font;
+    FontFactory* fonts{new FontFactory};
+    DocumentFont* mDocumentFont{new DocumentFont};
+
+    EditorMode mMode{EditorMode::Insert};
+    EditorPage mPage{EditorPage::None};
 };
 
 #endif  // EDITOR_HPP

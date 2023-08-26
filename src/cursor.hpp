@@ -4,9 +4,9 @@
 #include <cstddef>
 
 struct Cursor {
-    std::size_t line{};
-    std::size_t column{};
-    std::size_t index{};
+    int line{};
+    int column{};
+    int index{};
 
     bool operator==(const Cursor& other) const {
         return line == other.line && column == other.column &&

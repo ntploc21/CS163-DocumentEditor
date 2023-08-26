@@ -75,6 +75,8 @@ void Keybind::process(bool editable) {
             mPressedKeys.push_back(key);
         }
         return;
+    } else if (KEY_SPACE <= key && key <= KEY_F12 && IsKeyDown(key)) {
+        executeKeybinds(key, editable);
     }
 }
 

@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <stdexcept>
 
+#include "node.hpp"
 #include "rope/node.hpp"
 
 namespace rope {
@@ -54,14 +56,54 @@ namespace rope {
         return std::vector< Node::Ptr >{std::make_shared< Leaf >(*this)};
     }
 
-    std::size_t Leaf::find_line_start(std::size_t index) const {
+    std::pair< std::size_t, std::size_t > Leaf::pos_from_index(
+        std::size_t index) const {
+        index = std::min(index, mLength);
+
+        std::size_t line_idx =
+            lower_bound(mLinePos.begin(), mLinePos.end(), (int)index) -
+            mLinePos.begin();
+
+        std::size_t pos_idx = index;
+        if (line_idx) pos_idx -= mLinePos[line_idx - 1] + 1;
+
+        return std::make_pair(line_idx, pos_idx);
+    }
+    std::size_t Leaf::find_line_feed(std::size_t index) const {
+        if (mLineCount) index = std::min(index, mLineCount - 1);
+
+        if (mLineCount == 0) return 0;
+
         if (index >= mLineCount) throw std::out_of_range("Index out of range");
+
         return mLinePos.at(index);
     }
 
     std::size_t Leaf::find_word_start(std::size_t index) const {
         if (index >= mWordCount) throw std::out_of_range("Index out of range");
         return mWordPos.at(index);
+    }
+
+    std::size_t Leaf::find_word_at(std::size_t index) const {
+        if (index >= mLength) throw std::out_of_range("Index out of range");
+
+        if (index == 0) return 0;
+
+        // if (index == mLength - 1) {
+        //     if (mText[index] != ' ' && mText[index] != '\n' &&
+        //         mText[index] != '\t')
+        //         return 1;
+        //     return 0;
+        // }
+
+        std::size_t word_index =
+            upper_bound(mWordPos.begin(), mWordPos.end(), (int)index) -
+            mWordPos.begin();
+
+        std::cout << word_index << " _ " << index << std::endl;
+
+        if (word_index == 0) return 0;
+        return word_index - 1;
     }
 
     std::size_t Leaf::line_count() const { return mLineCount; }
