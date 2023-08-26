@@ -25,13 +25,16 @@ namespace constants::document {
     constexpr int padding_top = 50;
     constexpr int padding_left = 50;
 
+    constexpr int outline_margin_left = 30;
+    constexpr int outline_margin_right = 30;
+
     constexpr int default_font_size = 36;
 
     constexpr int default_font_id = 0;
 
     constexpr Color default_text_color = BLACK;
 
-    constexpr Color default_background_color = Color{0, 0, 0, 0};
+    constexpr Color default_background_color = WHITE;
 
 }  // namespace constants::document
 

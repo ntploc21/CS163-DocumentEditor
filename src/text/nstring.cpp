@@ -10,7 +10,7 @@ nstring::nstring(const nchar& other) { *this = other; }
 
 nstring::nstring(const nstring& other)
     : mChars{other.mChars}, mLength{other.mLength}, mFontSize{other.mFontSize},
-      mFontId{other.mFontId} {}
+      mFontId{other.mFontId}, mLink{other.mLink} {}
 
 nstring::nstring(const std::string& str) { *this = str; }
 
@@ -19,8 +19,6 @@ nstring::nstring(const char* str) { *this = str; }
 nstring& nstring::operator=(const char* str) {
     std::string s = str;
     *this = s;
-    mFontSize = constants::document::default_font_size;
-    mFontId = constants::document::default_font_id;
     return *this;
 }
 
@@ -30,6 +28,9 @@ nstring& nstring::operator=(const nchar& other) {
     mLength = 1;
     mFontSize = other.getFontSize();
     mFontId = other.getFontId();
+    mColor = other.getColor();
+    mBackgroundColor = other.getBackgroundColor();
+    mLink = other.getLink();
     return *this;
 }
 
@@ -38,12 +39,12 @@ nstring& nstring::operator=(const nstring& other) {
     mLength = other.mLength;
     mFontSize = other.mFontSize;
     mFontId = other.mFontId;
+    mLink = other.mLink;
     return *this;
 }
 
 nstring& nstring::operator=(const std::string& str) {
     mChars.clear();
-    mFontSize = constants::document::default_font_size;
 
     for (int i = 0; i < str.length();) {
         if ((str[i] & 0x80) == 0) {
@@ -61,6 +62,11 @@ nstring& nstring::operator=(const std::string& str) {
         }
     }
     mLength = mChars.size();
+    mFontSize = constants::document::default_font_size;
+    mFontId = constants::document::default_font_id;
+    mColor = constants::document::default_text_color;
+    mBackgroundColor = constants::document::default_background_color;
+    mLink = "";
 
     return *this;
 }
@@ -82,6 +88,13 @@ bool nstring::operator!=(const nstring& other) const {
 nstring& nstring::operator+=(const nstring& other) {
     mFontSize = std::max(mFontSize, other.getFontSize());
     if (mFontId != other.getFontId()) mFontId = -1;
+    mColor = (cmpColor(mColor, other.getColor()))
+                 ? mColor
+                 : constants::document::default_text_color;
+
+    mBackgroundColor = (cmpColor(mBackgroundColor, other.getBackgroundColor()))
+                           ? mBackgroundColor
+                           : constants::document::default_background_color;
 
     for (int i = 0; i < other.length(); ++i) {
         mChars.push_back(other.mChars[i]);
@@ -100,6 +113,14 @@ nstring nstring::operator+(const nstring& other) const {
 
 nstring& nstring::operator+=(const nchar& other) {
     mFontSize = std::max(mFontSize, other.getFontSize());
+    mColor = (cmpColor(mColor, other.getColor()))
+                 ? mColor
+                 : constants::document::default_text_color;
+
+    mBackgroundColor = (cmpColor(mBackgroundColor, other.getBackgroundColor()))
+                           ? mBackgroundColor
+                           : constants::document::default_background_color;
+
     if (mFontId != other.getFontId()) mFontId = -1;
 
     mChars.push_back(other);
@@ -294,4 +315,16 @@ Color nstring::getBackgroundColor() const {
     if (mChars.size() == 0)
         return constants::document::default_background_color;
     return mChars[0].getBackgroundColor();
+}
+
+void nstring::setLink(std::string link) {
+    mLink = link;
+    for (int i = 0; i < mChars.size(); ++i) {
+        mChars[i].setLink(link);
+    }
+}
+
+std::string nstring::getLink() const {
+    if (mChars.size() == 0) return "";
+    return mChars[0].getLink();
 }

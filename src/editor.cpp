@@ -9,6 +9,7 @@
 
 #include "clip.h"
 #include "constants.hpp"
+#include "raygui.h"
 #include "rope/rope.hpp"
 #include "utils.hpp"
 
@@ -40,7 +41,7 @@ void Editor::Run() {
     Update(GetFrameTime());
     Render();
 
-    mKeybind.process(true);
+    mKeybind.process(mMode == EditorMode::Insert);
 
     if (WindowShouldClose()) closed = true;
 }
@@ -51,7 +52,11 @@ void Editor::Render() {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(),
                   Color{249, 251, 253, 255});
 
+    DrawOutline();
+
     DrawEditor();
+
+    DrawPage();
 
     EndDrawing();
 }
@@ -126,6 +131,59 @@ void Editor::DrawEditorText() {
             line_height = std::max(line_height, charSize.y);
         }
 
+        // draw text
+        for (std::size_t i = line_start; i < next_line_start; ++i) {
+            Font charFont = getFont(content[i]);
+            std::size_t charFontSize = content[i].getFontSize();
+            Color textColor = content[i].getColor();
+            Color backgroundColor = content[i].getBackgroundColor();
+
+            bool hasLink = content[i].hasLink();
+
+            if (hasLink) textColor = BLUE;
+
+            Vector2 pos = currentDocument().get_display_positions(i);
+            Vector2 charSize = utils::measure_text(
+                charFont, content[i].getChar(), charFontSize, 2);
+
+            if (content[i].isSuperscript() || content[i].isSubscript()) {
+                charSize.x /= 2, charSize.y /= 2;
+                charFontSize /= 2;
+            }
+
+            if (content[i].isSubscript()) {
+                pos.y += charSize.y;
+            }
+
+            // draw background
+            DrawRectangle(utils::sum(utils::get_init_pos(), pos).x,
+                          utils::sum(utils::get_init_pos(), pos).y, charSize.x,
+                          charSize.y, backgroundColor);
+
+            DrawTextEx(charFont, content[i].getChar(),
+                       utils::sum(utils::get_init_pos(), pos), charFontSize, 2,
+                       textColor);
+
+            if (content[i].isUnderline()) {
+                DrawLineEx(
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x, pos.y + charSize.y}),
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x + charSize.x, pos.y + charSize.y}),
+                    1.5f, textColor);
+            }
+
+            if (content[i].isStrikethrough()) {
+                DrawLineEx(
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x, pos.y + 2 * charSize.y / 3}),
+                    utils::sum(utils::get_init_pos(),
+                               Vector2{pos.x + charSize.x,
+                                       pos.y + 2 * charSize.y / 3}),
+                    1.5f, textColor);
+            }
+        }
+
         // draw selected chars
         if (currentDocument().is_selecting()) {
             const auto& select_start = currentDocument().select_start();
@@ -159,52 +217,10 @@ void Editor::DrawEditorText() {
                         utils::sum(utils::get_init_pos(), pos);
 
                     DrawRectangle(rendered_pos.x, rendered_pos.y,
-                                  charSize.x + 1, line_height, LIGHTGRAY);
+                                  charSize.x + 1, line_height,
+                                  ColorAlpha(GRAY, 0.3F));
                     //   Color{109, 158, 235, 255});
                 }
-            }
-        }
-
-        // draw text
-        for (std::size_t i = line_start; i < next_line_start; ++i) {
-            Font charFont = getFont(content[i]);
-            std::size_t charFontSize = content[i].getFontSize();
-            Color textColor = content[i].getColor();
-
-            Vector2 pos = currentDocument().get_display_positions(i);
-            Vector2 charSize = utils::measure_text(
-                charFont, content[i].getChar(), charFontSize, 2);
-
-            if (content[i].isSuperscript() || content[i].isSubscript()) {
-                charSize.x /= 2, charSize.y /= 2;
-                charFontSize /= 2;
-            }
-
-            if (content[i].isSubscript()) {
-                pos.y += charSize.y;
-            }
-
-            DrawTextEx(charFont, content[i].getChar(),
-                       utils::sum(utils::get_init_pos(), pos), charFontSize, 2,
-                       textColor);
-
-            if (content[i].isUnderline()) {
-                DrawLineEx(
-                    utils::sum(utils::get_init_pos(),
-                               Vector2{pos.x, pos.y + charSize.y}),
-                    utils::sum(utils::get_init_pos(),
-                               Vector2{pos.x + charSize.x, pos.y + charSize.y}),
-                    1.5f, textColor);
-            }
-
-            if (content[i].isStrikethrough()) {
-                DrawLineEx(
-                    utils::sum(utils::get_init_pos(),
-                               Vector2{pos.x, pos.y + 2 * charSize.y / 3}),
-                    utils::sum(utils::get_init_pos(),
-                               Vector2{pos.x + charSize.x,
-                                       pos.y + 2 * charSize.y / 3}),
-                    1.5f, textColor);
             }
         }
     }
@@ -241,6 +257,8 @@ void Editor::InsertMode() {
                 Cursor cursor = currentDocument().pos_on_mouse();
 
                 currentDocument().set_cursor(cursor);
+
+                setLinkPage(currentDocument().get_link_selected());
             }
             leftMousePrevDown = true;
         } else
@@ -270,6 +288,219 @@ void Editor::SearchMode() {}
 Document& Editor::currentDocument() { return mDocument; }
 
 const Document& Editor::currentDocument() const { return mDocument; }
+
+void Editor::DrawOutline() {
+    float documentWidth = constants::document::default_view_width;
+    float documentHeight = constants::document::default_view_height;
+    float margin_top = constants::document::margin_top;
+    float margin_left = constants::document::outline_margin_left;
+    float margin_right = constants::document::outline_margin_right;
+
+    if ((GetScreenWidth() - documentWidth) / 2 - margin_right - margin_left <
+        150)
+        return;
+
+    // draw outline on the left of the text editor like Google Docs
+    DrawLineEx(
+        Vector2{margin_left, margin_top},
+        Vector2{margin_left +
+                    std::max(0.0f, (GetScreenWidth() - documentWidth) / 2 -
+                                       margin_right - margin_left),
+                margin_top},
+        2.0f, LIGHTGRAY);
+
+    // draw title "Outline" with color #5f6368
+    DrawTextEx(fonts->Get("Arial"), "Outline",
+               Vector2{margin_left, margin_top - 22}, 24, 0,
+               Color{95, 99, 104, 255});
+
+    // draw outline
+    std::vector< std::pair< std::size_t, nstring > > outline =
+        currentDocument().get_outline();
+
+    const std::size_t outline_heading_start_x[6] = {
+        0,   // title
+        0,   // 1
+        20,  // 2
+        40,  // 3
+        60,  // 4
+        80,  // 5
+    };
+
+    const std::size_t outline_heading_font_size[6] = {
+        26,  // title
+        26,  // 1
+        24,  // 2
+        22,  // 3
+        20,  // 4
+        18,  // 5
+    };
+
+    for (std::size_t i = 0; i < outline.size(); ++i) {
+        std::size_t heading_type = outline[i].first;
+        nstring heading_text = outline[i].second;
+
+        float x = margin_left + outline_heading_start_x[heading_type];
+        float y = margin_top + 20 + i * 50;
+        std::size_t fontSize = outline_heading_font_size[heading_type];
+
+        // draw heading text such that it not exceed the outline
+        float cur_width = x - margin_left;
+        for (std::size_t j = 0; j < heading_text.length(); ++j) {
+            nchar c = heading_text[j];
+            Vector2 charSize = utils::measure_text(fonts->Get("Arial"),
+                                                   c.getChar(), fontSize, 0);
+
+            cur_width += charSize.x;
+
+            if (cur_width >
+                std::max(0.0f, (GetScreenWidth() - documentWidth) / 2 -
+                                   margin_right - margin_left) -
+                    20) {
+                heading_text = heading_text.substr(0, j) + nstring("...");
+                break;
+            }
+        }
+
+        DrawTextEx(fonts->Get("Arial"), heading_text.c_str(), Vector2{x, y},
+                   fontSize, 0, Color{95, 99, 104, 255});
+    }
+
+    // check if user click on any heading
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        Vector2 mousePos = GetMousePosition();
+
+        if (mousePos.x >= margin_left &&
+            mousePos.x <=
+                margin_left +
+                    std::max(0.0f, (GetScreenWidth() - documentWidth) / 2 -
+                                       margin_right - margin_left)) {
+            if (mousePos.y >= margin_top + 20 &&
+                mousePos.y <= margin_top + 20 + outline.size() * 50) {
+                std::size_t heading_idx =
+                    (mousePos.y - margin_top - 20) / 50 + 1;
+
+                std::size_t heading_pos = outline[heading_idx - 1]
+                                              .second.substr(0, 1)
+                                              .to_string()[0] -
+                                          '0';
+
+                std::cout << heading_idx << std::endl;
+
+                // std::size_t line_start =
+                //     currentDocument().rope().find_line_start(heading_pos -
+                //     1);
+
+                // currentDocument().set_cursor(
+                //     Cursor{static_cast< int >(line_start), 0});
+            }
+        }
+    }
+}
+
+void Editor::DrawPage() {
+    float documentWidth = constants::document::default_view_width;
+    float documentHeight = constants::document::default_view_height;
+    float margin_top = constants::document::margin_top;
+    float margin_left = constants::document::outline_margin_left;
+    float margin_right = constants::document::outline_margin_right;
+
+    // draw the page right on the right of the text editor
+    float initX = std::max(0.0f, (GetScreenWidth() - documentWidth) / 2 +
+                                     documentWidth + margin_right);
+
+    float initY = margin_top;
+
+    switch (mPage) {
+        case EditorPage::Link:
+            DrawLinkPage(initX, initY);
+            break;
+        case EditorPage::Color:
+            DrawColorPage(initX, initY);
+            break;
+        default:
+            break;
+    }
+}
+
+void Editor::SetPage(EditorPage page) { mPage = page; }
+
+void Editor::DrawLinkPage(float initX, float initY) {
+    // draw title "Link"
+    DrawTextEx(fonts->Get("Arial"), "Link", Vector2{initX, initY - 22}, 24, 0,
+               Color{95, 99, 104, 255});
+
+    DrawLineEx(Vector2{initX, initY}, Vector2{(float)GetScreenWidth(), initY},
+               2.0f, LIGHTGRAY);
+
+    if (!currentDocument().is_selecting() ||
+        currentDocument().select_start() == currentDocument().select_end()) {
+        utils::DrawTextBoxed(
+            fonts->Get("Arial"),
+            "You must selecting a text you want to edit the link",
+            Rectangle{initX, initY + 20, 300, 300}, 24, 0, false, RED);
+        return;
+    }
+    char* url = new char[256];
+    strcpy(url, currentURL.c_str());
+
+    GuiTextBox(Rectangle{initX, initY + 20, 300, 50}, url, 256,
+               (mMode == EditorMode::Normal));
+
+    setLinkPage(url);
+
+    bool openLink =
+        GuiButton(Rectangle{initX, initY + 80, 300, 50}, "Open Link");
+    if (openLink) utils::open_link(currentURL);
+
+    bool clearLink =
+        GuiButton(Rectangle{initX, initY + 140, 300, 50}, "Clear Link");
+    if (clearLink) currentURL = "";
+
+    bool saveLink =
+        GuiButton(Rectangle{initX, initY + 200, 300, 50}, "Save Link");
+    if (saveLink) {
+        std::cout << currentURL << std::endl;
+        currentDocument().save_snapshot();
+        currentDocument().set_link_selected(currentURL);
+    }
+
+    delete[] url;
+}
+
+void Editor::setLinkPage(std::string url) { currentURL = url; }
+
+void Editor::DrawColorPage(float initX, float initY) {
+    // draw title "Color"
+    DrawTextEx(fonts->Get("Arial"), "Color", Vector2{initX, initY - 22}, 24, 0,
+               Color{95, 99, 104, 255});
+
+    DrawLineEx(Vector2{initX, initY}, Vector2{(float)GetScreenWidth(), initY},
+               2.0f, LIGHTGRAY);
+
+    DrawTextEx(fonts->Get("Arial"), "Text Color", Vector2{initX, initY + 18},
+               24, 0, Color{95, 99, 104, 255});
+    currentColor = GuiColorPicker({initX, initY + 40, 300, 300}, currentColor);
+
+    DrawTextEx(fonts->Get("Arial"), "Background Color",
+               Vector2{initX, initY + 358}, 24, 0, Color{95, 99, 104, 255});
+    currentBackgroundColor =
+        GuiColorPicker({initX, initY + 380, 300, 300}, currentBackgroundColor);
+
+    bool saveColor =
+        GuiButton(Rectangle{initX, initY + 780, 300, 50}, "Save Color");
+    if (saveColor) {
+        currentDocument().save_snapshot();
+        if (currentDocument().is_selecting()) {
+            currentDocument().set_text_color_selected(currentColor);
+            currentDocument().set_background_color_selected(
+                currentBackgroundColor);
+        } else {
+            currentDocument().set_text_color(currentColor);
+            currentDocument().set_background_color(currentBackgroundColor);
+        }
+    }
+}
 
 void Editor::LoadResources() {
     fonts->Load("Arial", "assets/fonts/SVN-Arial 3.ttf");
@@ -562,6 +793,52 @@ void Editor::PrepareKeybinds() {
             for (std::size_t i = 0; i < std::min(11, (int)suggestions.size());
                  ++i) {
                 std::cout << i << ": " << suggestions[i] << std::endl;
+            }
+        },
+        false);
+
+    /* Mode switching */
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_I},
+        [&]() {
+            if (mMode == EditorMode::Insert) {
+                mMode = EditorMode::Normal;
+            } else if (mMode == EditorMode::Normal) {
+                mMode = EditorMode::Insert;
+            }
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_K},
+        [&]() {
+            if (mPage == EditorPage::Link) {
+                mMode = EditorMode::Insert;
+                mPage = EditorPage::None;
+                return;
+            }
+            if (!currentDocument().is_selecting()) return;
+            mMode = EditorMode::Normal;
+            mPage = EditorPage::Link;
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_C},
+        [&]() {
+            if (mPage == EditorPage::Color) {
+                mMode = EditorMode::Insert;
+                mPage = EditorPage::None;
+
+                currentColor = BLACK;
+                currentBackgroundColor = Color{0, 0, 0, 0};
+            } else {
+                mMode = EditorMode::Normal;
+                mPage = EditorPage::Color;
+
+                currentColor = currentDocument().get_text_color();
+                currentBackgroundColor =
+                    currentDocument().get_background_color();
             }
         },
         false);

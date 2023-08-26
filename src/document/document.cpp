@@ -312,6 +312,46 @@ std::vector< nstring > Document::suggest_at_cursor() {
     return mDictionary->suggest(word);
 }
 
+std::vector< std::pair< std::size_t, nstring > > Document::get_outline() const {
+    std::vector< std::pair< std::size_t, nstring > > headings;
+
+    // return some examples
+    headings.push_back({1, "Heading 1 hello everyone xin chao cac ban"});
+    headings.push_back({2, "Heading 2"});
+    headings.push_back({3, "Heading 3"});
+    headings.push_back({4, "Heading 4"});
+    headings.push_back({5, "Heading 5"});
+
+    return headings;
+
+    // std::size_t pos = 0;
+    // while (pos < mRope.length()) {
+    //     if (mRope[pos].codepoint() == '#') {
+    //         int level = 0;
+    //         while (pos < mRope.length() && mRope[pos].codepoint() == '#') {
+    //             ++level;
+    //             ++pos;
+    //         }
+
+    //         while (pos < mRope.length() &&
+    //         std::isspace(mRope[pos].codepoint()))
+    //             ++pos;
+
+    //         int start = pos;
+    //         while (pos < mRope.length() && mRope[pos].codepoint() != '\n')
+    //             ++pos;
+
+    //         nstring heading = mRope.subnstr(start, pos - start);
+
+    //         headings.push_back({level, heading});
+    //     } else {
+    //         ++pos;
+    //     }
+    // }
+
+    // return headings;
+}
+
 void Document::underline_selected() {
     save_snapshot();
 
@@ -445,6 +485,12 @@ void Document::set_text_color(Color color) {
     mRope = mRope.replace(start, end - start, selected);
 }
 
+Color Document::get_text_color() const {
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    return mRope[pos].getColor();
+}
+
 void Document::set_background_color_selected(Color color) {
     save_snapshot();
 
@@ -478,6 +524,126 @@ void Document::set_background_color(Color color) {
     selected.setBackgroundColor(color);
 
     mRope = mRope.replace(start, end - start, selected);
+}
+
+Color Document::get_background_color() const {
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    return mRope[pos].getBackgroundColor();
+}
+
+void Document::set_font_size_selected(int size) {
+    save_snapshot();
+
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.setFontSize(size);
+
+    mRope = mRope.replace(start, end - start, selected);
+}
+
+void Document::set_font_size(int size) {
+    save_snapshot();
+
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    int left = pos, right = pos;
+
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
+
+    int start = left, end = right;
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    selected.setFontSize(size);
+
+    mRope = mRope.replace(start, end - start, selected);
+}
+
+void Document::set_font_id_selected(std::size_t id) {
+    save_snapshot();
+
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    nstring selected = mRope.subnstr(start, end - start);
+    selected.setFontId(id);
+
+    mRope = mRope.replace(start, end - start, selected);
+}
+
+void Document::set_font_id(std::size_t id) {
+    save_snapshot();
+
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    int left = pos, right = pos;
+
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
+
+    int start = left, end = right;
+
+    nstring selected = mRope.subnstr(start, end - start);
+    selected.setFontId(id);
+
+    mRope = mRope.replace(start, end - start, selected);
+}
+
+void Document::set_link_selected(std::string link) {
+    save_snapshot();
+
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+    nstring selected = mRope.subnstr(start, end - start);
+    selected.setLink(link);
+
+    mRope = mRope.replace(start, end - start, selected);
+
+    std::cout << link << " | " << selected.getLink() << " "
+              << mRope[start].getLink() << std::endl;
+}
+
+void Document::set_link(std::string link) {
+    save_snapshot();
+
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    int left = pos, right = pos;
+
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
+
+    int start = left, end = right;
+
+    nstring selected = mRope.subnstr(start, end - start);
+    selected.setLink(link);
+
+    mRope = mRope.replace(start, end - start, selected);
+}
+
+std::string Document::get_link_selected() const {
+    if (!is_selecting()) return std::string();
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+    nstring selected = mRope.subnstr(start, end - start);
+
+    return selected.getLink();
 }
 
 void Document::processWordWrap() {

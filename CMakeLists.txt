@@ -37,6 +37,7 @@ endif()
 include_directories(src)
 add_executable(${PROJECT_NAME}
     src/constants.hpp
+    src/raygui_impl.cpp
 
     src/main.cpp
     src/utils.cpp
@@ -62,7 +63,7 @@ add_executable(${PROJECT_NAME}
     src/keybind/keybind.cpp
     src/keybind/node.cpp
 
-    src/document.cpp
+    src/document/document.cpp
 
     src/FontFactory.cpp
     src/DocumentFont.cpp

@@ -4,10 +4,7 @@
 
 nchar::nchar() {}
 
-nchar::nchar(const nchar& other)
-    : mCodepoint{other.mCodepoint}, mType{other.mType},
-      mFontSize{other.mFontSize}, mColor{other.mColor},
-      mBackgroundColor{other.mBackgroundColor}, mFontId{other.mFontId} {}
+nchar::nchar(const nchar& other) { *this = other; }
 
 nchar::nchar(const char* c) { *this = c; }
 
@@ -20,6 +17,7 @@ nchar& nchar::operator=(const nchar& other) {
     mFontId = other.mFontId;
     mColor = other.mColor;
     mBackgroundColor = other.mBackgroundColor;
+    mLink = other.mLink;
     return *this;
 }
 
@@ -59,6 +57,7 @@ nchar& nchar::operator=(const char* c) {
     mFontId = constants::document::default_font_id;
     mColor = constants::document::default_text_color;
     mBackgroundColor = constants::document::default_background_color;
+    mLink = "";
 
     return *this;
 }
@@ -181,3 +180,9 @@ Color nchar::getColor() const { return mColor; }
 void nchar::setBackgroundColor(Color color) { mBackgroundColor = color; }
 
 Color nchar::getBackgroundColor() const { return mBackgroundColor; }
+
+void nchar::setLink(std::string link) { mLink = link; }
+
+std::string nchar::getLink() const { return mLink; }
+
+bool nchar::hasLink() const { return !mLink.empty(); }

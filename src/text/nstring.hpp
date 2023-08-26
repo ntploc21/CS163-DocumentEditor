@@ -56,6 +56,9 @@ public:
     void setBackgroundColor(Color color);
     Color getBackgroundColor() const;
 
+    void setLink(std::string link);
+    std::string getLink() const;
+
 private:
     nstring& toggleType(std::size_t start, std::size_t length,
                         nchar::Type type);
@@ -69,6 +72,8 @@ private:
 
     Color mColor{constants::document::default_text_color};
     Color mBackgroundColor{constants::document::default_background_color};
+
+    std::string mLink{};
 };
 
 #endif  // TEXT_nstring_HPP

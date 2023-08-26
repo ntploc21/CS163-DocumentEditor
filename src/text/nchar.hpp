@@ -62,6 +62,10 @@ public:
     void setBackgroundColor(Color color);
     Color getBackgroundColor() const;
 
+    void setLink(std::string link);
+    std::string getLink() const;
+    bool hasLink() const;
+
     bool isBold() const;
     bool isItalic() const;
     bool isUnderline() const;
@@ -80,6 +84,8 @@ private:
     Color mBackgroundColor{constants::document::default_background_color};
 
     std::size_t mFontId{0};
+
+    std::string mLink{};
 };
 
 #endif  // TEXT_nchar_HPP

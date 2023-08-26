@@ -74,6 +74,10 @@ public:
     std::vector< nstring > suggest_at_cursor();
 
 public:
+    // pair< heading type, heading text >
+    std::vector< std::pair< std::size_t, nstring > > get_outline() const;
+
+public:
     void underline_selected();
     void strikethrough_selected();
     void bold_selected();
@@ -85,9 +89,27 @@ public:
 
     void set_text_color(Color color);
 
+    Color get_text_color() const;
+
     void set_background_color_selected(Color color);
 
     void set_background_color(Color color);
+
+    Color get_background_color() const;
+
+    void set_font_size_selected(int size);
+
+    void set_font_size(int size);
+
+    void set_font_id_selected(std::size_t id);
+
+    void set_font_id(std::size_t id);
+
+    void set_link_selected(std::string link);
+
+    void set_link(std::string link);
+
+    std::string get_link_selected() const;
 
 private:
     void processWordWrap();

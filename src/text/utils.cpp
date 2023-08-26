@@ -11,6 +11,13 @@ bool isSameType(const nstring& str, nchar::Type type, std::size_t start,
     return true;
 }
 
+bool cmpColor(const Color& a, const Color& b) {
+    if (a.a != b.a) return 0;
+    if (a.r != b.r) return 0;
+    if (a.g != b.g) return 0;
+    return a.b == b.b;
+}
+
 nstring tolower(nstring str) {
     nstring result;
     for (std::size_t i = 0; i < str.length(); ++i) {

@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "raygui.h"
+#include "raylib.h"
 
 class FontFactory {
 public:
