@@ -37,7 +37,7 @@ namespace constants::document {
     constexpr Color default_background_color = WHITE;
 
     /* heading font size */
-    constexpr int heading_font_size[] = {36, 32, 28, 24, 20, 16};
+    constexpr int heading_font_size[] = {default_font_size, 64, 56, 48, 40, 32};
 
     /* list */
     constexpr int list_indent = 50;

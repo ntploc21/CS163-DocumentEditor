@@ -381,41 +381,18 @@ void Document::replace_word_at_cursor(const nstring& text) {
 std::vector< std::pair< std::size_t, nstring > > Document::get_outline() const {
     std::vector< std::pair< std::size_t, nstring > > headings;
 
-    // return some examples
-    headings.push_back({1, "Heading 1 hello everyone xin chao cac ban"});
-    headings.push_back({2, "Heading 2"});
-    headings.push_back({3, "Heading 3"});
-    headings.push_back({4, "Heading 4"});
-    headings.push_back({5, "Heading 5"});
+    for (std::size_t i = 0; i < mRope.line_count(); ++i) {
+        std::size_t heading = mDocumentStructure.get_headings(i);
+        if (heading == Heading::None) continue;
+        std::size_t start = mRope.index_from_pos(i, 0);
+        std::size_t end = mRope.index_from_pos(i + 1, 0);
+
+        nstring text = mRope.subnstr(start, end - start);
+
+        headings.push_back({heading, text});
+    }
 
     return headings;
-
-    // std::size_t pos = 0;
-    // while (pos < mRope.length()) {
-    //     if (mRope[pos].codepoint() == '#') {
-    //         int level = 0;
-    //         while (pos < mRope.length() && mRope[pos].codepoint() == '#') {
-    //             ++level;
-    //             ++pos;
-    //         }
-
-    //         while (pos < mRope.length() &&
-    //         std::isspace(mRope[pos].codepoint()))
-    //             ++pos;
-
-    //         int start = pos;
-    //         while (pos < mRope.length() && mRope[pos].codepoint() != '\n')
-    //             ++pos;
-
-    //         nstring heading = mRope.subnstr(start, pos - start);
-
-    //         headings.push_back({level, heading});
-    //     } else {
-    //         ++pos;
-    //     }
-    // }
-
-    // return headings;
 }
 
 void Document::underline_selected() {
@@ -633,6 +610,19 @@ void Document::set_font_size(int size) {
     mRope = mRope.replace(start, end - start, selected);
 }
 
+void Document::set_line_font_size(std::size_t line_idx, int size) {
+    std::size_t start = mRope.index_from_pos(line_idx, 0);
+    std::size_t end = mRope.index_from_pos(line_idx + 1, 0);
+
+    nstring selected = mRope.subnstr(start, end - start);
+
+    std::size_t font_size = size;
+
+    selected.setFontSize(font_size);
+
+    mRope = mRope.replace(start, end - start, selected);
+}
+
 void Document::set_font_id_selected(std::size_t id) {
     save_snapshot();
 
@@ -734,6 +724,7 @@ void Document::set_heading_selected(Heading heading) {
     save_snapshot();
 
     for (std::size_t i = select_start().line; i <= select_end().line; ++i) {
+        set_line_font_size(i, constants::document::heading_font_size[heading]);
         mDocumentStructure.set_headings(i, heading);
     }
 
@@ -743,6 +734,11 @@ void Document::set_heading_selected(Heading heading) {
 void Document::set_heading_current_line(Heading heading) {
     save_snapshot();
 
+    // set font size of all characters on current line
+    set_line_font_size(mCursor.line,
+                       constants::document::heading_font_size[heading]);
+
+    // set heading of current line
     mDocumentStructure.set_headings(mCursor.line, heading);
 
     processWordWrap();
