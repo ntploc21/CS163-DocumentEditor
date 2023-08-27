@@ -11,7 +11,7 @@
 
 enum class EditorMode { Normal, Insert, Search };
 
-enum class EditorPage { None, Link, Color };
+enum class EditorPage { None, Link, Color, Search };
 
 /**
  * @brief The application class that represents the application.
@@ -88,6 +88,10 @@ private:
 
     const Document& currentDocument() const;
 
+    Search& currentSearch();
+
+    const Search& currentSearch() const;
+
     void DrawOutline();
 
     void DrawPage();
@@ -102,6 +106,9 @@ private:
     void DrawColorPage(float initX, float initY);
     Color currentColor = BLACK;
     Color currentBackgroundColor = Color{0, 0, 0, 0};
+
+    void DrawSearchPage(float initX, float initY);
+    bool searchPageFirstInput = true;
 
 private:
     bool closed = false;

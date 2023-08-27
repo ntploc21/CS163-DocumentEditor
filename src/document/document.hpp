@@ -73,6 +73,8 @@ public:
     bool check_word_at_cursor();
     std::vector< nstring > suggest_at_cursor();
 
+    nstring get_selected_text() const;
+
 public:
     // pair< heading type, heading text >
     std::vector< std::pair< std::size_t, nstring > > get_outline() const;
@@ -111,7 +113,6 @@ public:
 
     std::string get_link_selected() const;
 
-private:
     void processWordWrap();
     // void processWordWrap2();
 

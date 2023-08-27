@@ -64,6 +64,7 @@ add_executable(${PROJECT_NAME}
     src/keybind/node.cpp
 
     src/document/document.cpp
+    src/search/search.cpp
 
     src/FontFactory.cpp
     src/DocumentFont.cpp

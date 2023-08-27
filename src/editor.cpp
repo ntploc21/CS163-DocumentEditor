@@ -106,10 +106,23 @@ void Editor::DrawEditorText() {
         return mDocumentFont->get_font(c.getFontId());
     };
 
+    /* */
+    std::vector< std::size_t > find_matches = currentSearch().match_idx();
+
+    bool* search_match_idx = new bool[currentDocument().rope().length()];
+    memset(search_match_idx, 0, currentDocument().rope().length());
+
+    for (auto find_match : find_matches) {
+        for (std::size_t i = find_match;
+             i < find_match + currentSearch().pattern().length(); ++i) {
+            search_match_idx[i] = true;
+            // std::cout << i << std::endl;
+        }
+    }
+
     int documentWidth = constants::document::default_view_width;
     int documentHeight = constants::document::default_view_height;
     int margin_top = constants::document::margin_top;
-    // Vector2 char_size = utils::measure_text(" ", 20, 0);
 
     const auto& cursor = currentDocument().cursor();
     const auto& content = currentDocument().rope();
@@ -182,6 +195,12 @@ void Editor::DrawEditorText() {
                                        pos.y + 2 * charSize.y / 3}),
                     1.5f, textColor);
             }
+
+            if (search_match_idx[i] && mMode == EditorMode::Search) {
+                DrawRectangle(utils::sum(utils::get_init_pos(), pos).x,
+                              utils::sum(utils::get_init_pos(), pos).y,
+                              charSize.x, charSize.y, ColorAlpha(YELLOW, 0.5F));
+            }
         }
 
         // draw selected chars
@@ -236,6 +255,8 @@ void Editor::DrawEditorText() {
 
     DrawRectangle(cursor_rendered_pos.x, cursor_rendered_pos.y, 1.5f, 36,
                   ORANGE);
+
+    delete[] search_match_idx;
 }
 
 void Editor::NormalMode() {}
@@ -288,6 +309,10 @@ void Editor::SearchMode() {}
 Document& Editor::currentDocument() { return mDocument; }
 
 const Document& Editor::currentDocument() const { return mDocument; }
+
+Search& Editor::currentSearch() { return mSearch; }
+
+const Search& Editor::currentSearch() const { return mSearch; }
 
 void Editor::DrawOutline() {
     float documentWidth = constants::document::default_view_width;
@@ -418,6 +443,9 @@ void Editor::DrawPage() {
         case EditorPage::Color:
             DrawColorPage(initX, initY);
             break;
+        case EditorPage::Search:
+            DrawSearchPage(initX, initY);
+            break;
         default:
             break;
     }
@@ -444,8 +472,8 @@ void Editor::DrawLinkPage(float initX, float initY) {
     char* url = new char[256];
     strcpy(url, currentURL.c_str());
 
-    GuiTextBox(Rectangle{initX, initY + 20, 300, 50}, url, 256,
-               (mMode == EditorMode::Normal));
+    GuiTextBoxV2(Rectangle{initX, initY + 20, 300, 50}, url,
+                 fonts->Get("Arial"), 24, 256, (mMode == EditorMode::Normal));
 
     setLinkPage(url);
 
@@ -480,12 +508,13 @@ void Editor::DrawColorPage(float initX, float initY) {
 
     DrawTextEx(fonts->Get("Arial"), "Text Color", Vector2{initX, initY + 18},
                24, 0, Color{95, 99, 104, 255});
-    currentColor = GuiColorPicker({initX, initY + 40, 300, 300}, currentColor);
+    currentColor =
+        GuiColorPicker({initX, initY + 40, 300, 300}, nullptr, currentColor);
 
     DrawTextEx(fonts->Get("Arial"), "Background Color",
                Vector2{initX, initY + 358}, 24, 0, Color{95, 99, 104, 255});
-    currentBackgroundColor =
-        GuiColorPicker({initX, initY + 380, 300, 300}, currentBackgroundColor);
+    currentBackgroundColor = GuiColorPicker({initX, initY + 380, 300, 300},
+                                            nullptr, currentBackgroundColor);
 
     bool saveColor =
         GuiButton(Rectangle{initX, initY + 780, 300, 50}, "Save Color");
@@ -499,6 +528,111 @@ void Editor::DrawColorPage(float initX, float initY) {
             currentDocument().set_text_color(currentColor);
             currentDocument().set_background_color(currentBackgroundColor);
         }
+    }
+}
+
+void Editor::DrawSearchPage(float initX, float initY) {
+    /* */
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        // check if mouse is in bound of the first input
+        if (CheckCollisionPointRec(GetMousePosition(),
+                                   Rectangle{initX, initY + 20, 300, 50})) {
+            searchPageFirstInput = true;
+        }
+
+        // check if mouse is in bound of the second input
+        if (CheckCollisionPointRec(GetMousePosition(),
+                                   Rectangle{initX, initY + 200, 300, 50})) {
+            searchPageFirstInput = false;
+        }
+    }
+
+    // draw title "Search"
+    DrawTextEx(fonts->Get("Arial"), "Search", Vector2{initX, initY - 22}, 24, 0,
+               Color{95, 99, 104, 255});
+
+    DrawLineEx(Vector2{initX, initY}, Vector2{(float)GetScreenWidth(), initY},
+               2.0f, LIGHTGRAY);
+
+    std::string text = currentSearch().pattern().to_string();
+    char* textC = new char[1024];
+    strcpy(textC, text.c_str());
+
+    // draw search box
+    GuiTextBoxV2(Rectangle{initX, initY + 20, 300, 50}, textC,
+                 fonts->Get("Arial"), 36, 256,
+                 (mMode == EditorMode::Search && searchPageFirstInput));
+
+    currentSearch().set_pattern(nstring(textC));
+
+    bool find = GuiButton(Rectangle{initX, initY + 80, 200, 50}, "Find");
+
+    bool findNext =
+        GuiButton(Rectangle{initX + 200, initY + 80, 50, 50}, "#121#");
+
+    bool findPrev =
+        GuiButton(Rectangle{initX + 250, initY + 80, 50, 50}, "#120#");
+
+    // draw search result
+    if (!currentSearch().match_idx().size()) {
+        DrawTextEx(fonts->Get("Arial"), "No result", {initX, initY + 140}, 24,
+                   0, RED);
+    } else {
+        std::string result =
+            std::to_string(currentSearch().match_idx().size()) + " result(s)";
+        DrawTextEx(fonts->Get("Arial"), result.c_str(), {initX, initY + 140},
+                   24, 0, Color{95, 99, 104, 255});
+    }
+
+    if (find) {
+        currentSearch().find_in_content(currentDocument().rope());
+
+        std::vector< std::size_t > found = currentSearch().match_idx();
+
+        if (!found.size()) return;
+        currentDocument().save_snapshot();
+
+        currentDocument().turn_off_selecting();
+
+        if (currentSearch().match_idx().back() >
+            currentDocument().cursor().index) {
+            currentDocument().set_cursor(
+                currentSearch().next_match(currentDocument().cursor()));
+        } else {
+            currentDocument().set_cursor(
+                currentSearch().prev_match(currentDocument().cursor()));
+        }
+    }
+
+    if (findNext) {
+        currentDocument().set_cursor(
+            currentSearch().next_match(currentDocument().cursor()));
+    }
+
+    if (findPrev) {
+        currentDocument().set_cursor(
+            currentSearch().prev_match(currentDocument().cursor()));
+    }
+
+    // draw replace box
+    std::string replaceText = currentSearch().replacement().to_string();
+    char* replaceTextC = new char[1024];
+    strcpy(replaceTextC, replaceText.c_str());
+
+    GuiTextBoxV2(Rectangle{initX, initY + 200, 300, 50}, replaceTextC,
+                 fonts->Get("Arial"), 36, 256,
+                 (mMode == EditorMode::Search && !searchPageFirstInput));
+
+    currentSearch().set_replacement(nstring(replaceTextC));
+
+    bool replace = GuiButton(Rectangle{initX, initY + 260, 200, 50}, "Replace");
+
+    if (replace && currentSearch().match_idx().size()) {
+        currentDocument().save_snapshot();
+        currentDocument().set_cursor(currentSearch().matches().front());
+        currentDocument().rope() =
+            currentSearch().replace_in_content(currentDocument().rope());
+        currentDocument().processWordWrap();
     }
 }
 
@@ -775,7 +909,29 @@ void Editor::PrepareKeybinds() {
         false);
 
     mKeybind.insert(
-        {KEY_LEFT_CONTROL, KEY_F}, [&]() { mMode = EditorMode::Search; },
+        {KEY_LEFT_CONTROL, KEY_F},
+        [&]() {
+            if (mMode == EditorMode::Search) {
+                mMode = EditorMode::Insert;
+                mPage = EditorPage::None;
+                return;
+            }
+
+            mMode = EditorMode::Search;
+            mPage = EditorPage::Search;
+            mSearch.set_pattern(nstring(""));
+            if (currentDocument().is_selecting()) {
+                currentDocument().save_snapshot();
+
+                nstring text = currentDocument().get_selected_text();
+                mSearch.set_pattern(text);
+                mSearch.find_in_content(currentDocument().rope());
+
+                currentDocument().turn_off_selecting();
+            }
+
+            searchPageFirstInput = true;
+        },
         false);
 
     mKeybind.insert(

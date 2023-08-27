@@ -35,12 +35,15 @@ void Search::find_in_content(const Rope& text) {
         }
     }
 
-    Cursor cursor{};
+    Cursor cursor{0, -1};
     for (std::size_t i = mPattern.length(); i < n; i++) {
         if (z[i] == mPattern.length()) {
-            mMatches.push_back(cursor);
+            mMatches.push_back(Cursor{cursor.line, cursor.column});
+            std::cout << "match at " << cursor.line << ", " << cursor.column
+                      << std::endl;
             mMatchIdx.push_back(i - mPattern.length() - 1);
             i += mPattern.length() - 1;  // avoid overlapping matches
+            cursor.column += mPattern.length() - 1;
         }
         nchar c = s[i];
         if (c == '\n') {
@@ -78,9 +81,10 @@ Cursor Search::next_match(Cursor current) const {
 Cursor Search::prev_match(Cursor current) const {
     if (mMatches.empty()) return current;
 
-    auto it = std::lower_bound(mMatches.rbegin(), mMatches.rend(), current);
+    auto it = std::lower_bound(mMatches.begin(), mMatches.end(), current);
 
-    if (it == mMatches.rend()) return mMatches.back();
+    if (it == mMatches.begin()) return mMatches.back();
+    it--;
 
     return *it;
 }

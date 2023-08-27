@@ -312,6 +312,15 @@ std::vector< nstring > Document::suggest_at_cursor() {
     return mDictionary->suggest(word);
 }
 
+nstring Document::get_selected_text() const {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+    std::size_t end =
+        mRope.index_from_pos(select_end().line, select_end().column);
+
+    return mRope.subnstr(start, end - start);
+}
+
 std::vector< std::pair< std::size_t, nstring > > Document::get_outline() const {
     std::vector< std::pair< std::size_t, nstring > > headings;
 

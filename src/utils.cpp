@@ -66,6 +66,12 @@ namespace utils {
         system(command.c_str());
     }
 
+    // Draw textbox with specified position and size
+    // bool DrawTextBox(Rectangle bounds, nstring& text, int textSize,
+    //                  bool editMode) {
+    //     DrawTextEx
+    //     }
+
     // Draw text using font inside rectangle limits
     void DrawTextBoxed(Font font, const char* text, Rectangle rec,
                        float fontSize, float spacing, bool wordWrap,
