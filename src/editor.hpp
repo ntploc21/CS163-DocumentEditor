@@ -11,7 +11,7 @@
 
 enum class EditorMode { Normal, Insert, Search };
 
-enum class EditorPage { None, Link, Color, Search, SpellCheck };
+enum class EditorPage { None, Link, Color, Search, SpellCheck, FontEditor };
 
 /**
  * @brief The application class that represents the application.
@@ -112,6 +112,8 @@ private:
 
     void DrawSpellCheckPage(float initX, float initY);
     std::vector< nstring > suggestions{};
+
+    void DrawFontEditorPage(float initX, float initY);
 
 private:
     bool closed = false;

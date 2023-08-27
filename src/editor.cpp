@@ -381,6 +381,11 @@ void Editor::DrawOutline() {
     std::vector< std::pair< std::size_t, std::size_t > > outline =
         currentDocument().get_outline();
 
+    std::size_t largestHeading = 6;
+    for (std::size_t i = 0; i < outline.size(); ++i) {
+        largestHeading = std::min(largestHeading, outline[i].first);
+    }
+
     const std::size_t outline_heading_start_x[6] = {
         0,   // title
         0,   // 1
@@ -404,7 +409,8 @@ void Editor::DrawOutline() {
         nstring heading_text =
             currentDocument().get_line_text(outline[i].second);
 
-        float x = margin_left + outline_heading_start_x[heading_type];
+        float x = margin_left +
+                  outline_heading_start_x[heading_type - largestHeading + 1];
         float y = margin_top + 20 + i * 50;
         std::size_t fontSize = outline_heading_font_size[heading_type];
 
