@@ -446,6 +446,9 @@ void Editor::DrawPage() {
         case EditorPage::Search:
             DrawSearchPage(initX, initY);
             break;
+        case EditorPage::SpellCheck:
+            DrawSpellCheckPage(initX, initY);
+            break;
         default:
             break;
     }
@@ -636,6 +639,60 @@ void Editor::DrawSearchPage(float initX, float initY) {
     }
 }
 
+void Editor::DrawSpellCheckPage(float initX, float initY) {
+    // draw title "Spell Check"
+    DrawTextEx(fonts->Get("Arial"), "Spell Check", Vector2{initX, initY - 22},
+               24, 0, Color{95, 99, 104, 255});
+
+    DrawLineEx(Vector2{initX, initY}, Vector2{(float)GetScreenWidth(), initY},
+               2.0f, LIGHTGRAY);
+
+    // draw word check
+    bool wordValid = currentDocument().check_word_at_cursor();
+
+    Color wordColor = wordValid ? Color{95, 99, 104, 255} : RED;
+
+    std::string word = currentDocument().get_word_at_cursor().to_string();
+    DrawTextEx(fonts->Get("Arial"), word.c_str(), Vector2{initX, initY + 20},
+               24, 0, wordColor);
+
+    if (wordValid) {
+        DrawTextEx(fonts->Get("Arial"), "is valid",
+                   Vector2{initX + 200, initY + 20}, 24, 0, wordColor);
+        return;
+    }
+
+    DrawTextEx(fonts->Get("Arial"), "is invalid",
+               Vector2{initX + 200, initY + 20}, 24, 0, wordColor);
+
+    bool suggest = GuiButton(Rectangle{initX, initY + 60, 300, 50}, "Suggest");
+
+    if (suggest) {
+        suggestions = currentDocument().suggest_at_cursor();
+    }
+
+    // draw suggestion
+
+    DrawTextEx(fonts->Get("Arial"), "Suggestions", Vector2{initX, initY + 120},
+               24, 0, RED);
+    // use GuiListView to draw a list of suggestions
+    std::string suggestionsWord = "";
+    for (std::size_t i = 0; i < std::min(11, (int)suggestions.size()); ++i) {
+        suggestionsWord += suggestions[i].to_string() + ";";
+    }
+    suggestionsWord = suggestionsWord.substr(0, suggestionsWord.length() - 1);
+
+    int scrollIndex = 0;
+    int selected = -1;
+
+    selected = GuiListView(Rectangle{initX, initY + 180, 300, 300},
+                           suggestionsWord.c_str(), &scrollIndex, selected);
+
+    if (selected == -1) return;
+    currentDocument().replace_word_at_cursor(suggestions[selected]);
+    // suggestions.clear();
+}
+
 void Editor::LoadResources() {
     fonts->Load("Arial", "assets/fonts/SVN-Arial 3.ttf");
     fonts->Load("Arial Bold", "assets/fonts/SVN-Arial 3 bold.ttf");
@@ -651,7 +708,7 @@ void Editor::LoadResources() {
 
     mDocumentFont->registerFont(info);
 
-    // mDictionary->loadDatabase(constants::dictionary::default_database_path);
+    mDictionary->loadDatabase(constants::dictionary::default_database_path);
 }
 
 void Editor::PrepareKeybinds() {
@@ -707,7 +764,6 @@ void Editor::PrepareKeybinds() {
         [&]() {
             currentDocument().turn_off_selecting();
             currentDocument().insert_at_cursor(nstring("\n"));
-            // currentDocument().cursor_move_next_line();
         },
         true);
 
@@ -937,6 +993,16 @@ void Editor::PrepareKeybinds() {
     mKeybind.insert(
         {KEY_LEFT_CONTROL, KEY_H},
         [&]() {
+            if (mPage == EditorPage::SpellCheck) {
+                mMode = EditorMode::Insert;
+                mPage = EditorPage::None;
+                return;
+            }
+
+            mMode = EditorMode::Normal;
+            mPage = EditorPage::SpellCheck;
+
+            /*
             bool valid_word = currentDocument().check_word_at_cursor();
             std::vector< nstring > suggestions =
                 currentDocument().suggest_at_cursor();
@@ -949,7 +1015,7 @@ void Editor::PrepareKeybinds() {
             for (std::size_t i = 0; i < std::min(11, (int)suggestions.size());
                  ++i) {
                 std::cout << i << ": " << suggestions[i] << std::endl;
-            }
+            }*/
         },
         false);
 

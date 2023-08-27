@@ -146,7 +146,10 @@ std::size_t Rope::line_count() const {
 
 std::size_t Rope::line_length(std::size_t line_index) const {
     if (line_index == line_count() - 1) {
-        return length() - mRoot->find_line_start(line_index);
+        std::size_t end = length() - 1;
+        while (end > 0 && mRoot->operator[](end) == '\n') end--;
+        return length() - mRoot->find_line_start(line_index) -
+               (length() - end - 1);
     }
     return mRoot->find_line_start(line_index + 1) -
            mRoot->find_line_start(line_index) - 1;

@@ -73,7 +73,11 @@ public:
     bool check_word_at_cursor();
     std::vector< nstring > suggest_at_cursor();
 
+    nstring get_word_at_cursor() const;
+
     nstring get_selected_text() const;
+
+    void replace_word_at_cursor(const nstring& text);
 
 public:
     // pair< heading type, heading text >

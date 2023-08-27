@@ -52,6 +52,8 @@ void Document::cursor_move_line(int delta) {
     mCursor.line = std::clamp(mCursor.line + delta, 0,
                               static_cast< int >(mRope.line_count()) - 1);
 
+    std::cout << mCursor.line << " " << mCursor.column << std::endl;
+
     cursor_move_column(0);
 }
 
@@ -61,6 +63,9 @@ void Document::cursor_move_column(int delta) {
     // int right_offset =
     //     (mCursor.line + 1 == static_cast< int >(mRope.line_count()));
     mCursor.column = std::clamp(mCursor.column + delta, 0, lineLength);
+
+    std::cout << "! " << mCursor.line << " " << mCursor.column << " _ "
+              << lineLength << " v " << mRope.line_count() << std::endl;
 
     if (mCursor.column < 0) {
         mCursor.column = 0;
@@ -166,12 +171,21 @@ Cursor Document::pos_on_mouse() const {
 
     auto [line, column] = mRope.pos_from_index(document_pos);
 
+    if (line == mRope.line_count()) {
+        column = mRope.line_length(--line);
+    }
+
     return Cursor{static_cast< int >(line), static_cast< int >(column)};
 }
 
 void Document::insert_at_cursor(const nstring& text) {
     std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
     mRope = mRope.insert(pos, text);
+
+    if (text.length() == 1 && text[0].getChar() == "\n" ||
+        text[0].getChar() == " ") {
+        save_snapshot();
+    }
 
     for (std::size_t i = 0; i < text.length(); ++i) {
         cursor_move_next_char();
@@ -183,6 +197,11 @@ void Document::insert_at_cursor(const nstring& text) {
 void Document::append_at_cursor(const nstring& text) {
     std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
     mRope = mRope.insert(pos, text);
+
+    if (text.length() == 1 && text[0].getChar() == "\n" ||
+        text[0].getChar() == " ") {
+        save_snapshot();
+    }
 
     for (std::size_t i = 0; i < text.length(); ++i) {
         cursor_move_next_char();
@@ -287,19 +306,16 @@ void Document::turn_off_selecting() {
 bool Document::is_selecting() const { return mIsSelecting; }
 
 bool Document::check_word_at_cursor() {
-    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
-
-    int left = pos, right = pos;
-
-    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
-    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
-        ++right;
-
-    nstring word = mRope.subnstr(left, right - left);
+    nstring word = get_word_at_cursor();
     return mDictionary->search(word);
 }
 
 std::vector< nstring > Document::suggest_at_cursor() {
+    nstring word = get_word_at_cursor();
+    return mDictionary->suggest(word);
+}
+
+nstring Document::get_word_at_cursor() const {
     std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
 
     int left = pos, right = pos;
@@ -308,8 +324,7 @@ std::vector< nstring > Document::suggest_at_cursor() {
     while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
         ++right;
 
-    nstring word = mRope.subnstr(left, right - left);
-    return mDictionary->suggest(word);
+    return mRope.subnstr(left, right - left);
 }
 
 nstring Document::get_selected_text() const {
@@ -319,6 +334,28 @@ nstring Document::get_selected_text() const {
         mRope.index_from_pos(select_end().line, select_end().column);
 
     return mRope.subnstr(start, end - start);
+}
+
+void Document::replace_word_at_cursor(const nstring& text) {
+    save_snapshot();
+
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    int left = pos, right = pos;
+
+    while (left > 0 && std::isalnum(mRope[left - 1].codepoint())) --left;
+    while (right < mRope.length() && std::isalnum(mRope[right].codepoint()))
+        ++right;
+
+    int start = left, end = right;
+
+    mRope = mRope.replace(start, end - start, text);
+
+    cursor().column += left - pos + text.length();
+
+    turn_off_selecting();
+
+    processWordWrap();
 }
 
 std::vector< std::pair< std::size_t, nstring > > Document::get_outline() const {
