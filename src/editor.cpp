@@ -133,6 +133,8 @@ void Editor::DrawEditorText() {
 
     std::size_t listNumberCounter = 0;
 
+    std::size_t cursorHeight = 36;
+
     for (; cur_line_idx < content.line_count();
          cur_line_idx++, line_start = next_line_start) {
         next_line_start = content.find_line_start(cur_line_idx + 1);
@@ -143,9 +145,15 @@ void Editor::DrawEditorText() {
         float y = currentDocument().get_display_positions(line_start).y;
 
         for (std::size_t i = line_start; i < next_line_start - 1; ++i) {
-            Vector2 charSize = utils::measure_text(fonts->Get("Arial"),
-                                                   content[i].getChar(), 36, 2);
+            Font charFont = getFont(content[i]);
+            std::size_t charFontSize = content[i].getFontSize();
+            Vector2 charSize = utils::measure_text(
+                charFont, content[i].getChar(), charFontSize, 2);
             line_height = std::max(line_height, charSize.y);
+        }
+
+        if (currentDocument().cursor().line == cur_line_idx) {
+            cursorHeight = line_height;
         }
 
         listNumberCounter =
@@ -186,6 +194,8 @@ void Editor::DrawEditorText() {
             Vector2 pos = currentDocument().get_display_positions(i);
             Vector2 charSize = utils::measure_text(
                 charFont, content[i].getChar(), charFontSize, 2);
+
+            pos.y += line_height - charSize.y;
 
             if (content[i].isSuperscript() || content[i].isSubscript()) {
                 charSize.x /= 2, charSize.y /= 2;
@@ -281,8 +291,8 @@ void Editor::DrawEditorText() {
     Vector2 cursor_rendered_pos =
         utils::sum(utils::get_init_pos(), cursor_display_pos);
 
-    DrawRectangle(cursor_rendered_pos.x, cursor_rendered_pos.y, 1.5f, 36,
-                  ORANGE);
+    DrawRectangle(cursor_rendered_pos.x, cursor_rendered_pos.y, 1.5f,
+                  cursorHeight, ORANGE);
 
     delete[] search_match_idx;
 }
@@ -368,7 +378,7 @@ void Editor::DrawOutline() {
                Color{95, 99, 104, 255});
 
     // draw outline
-    std::vector< std::pair< std::size_t, nstring > > outline =
+    std::vector< std::pair< std::size_t, std::size_t > > outline =
         currentDocument().get_outline();
 
     const std::size_t outline_heading_start_x[6] = {
@@ -391,7 +401,8 @@ void Editor::DrawOutline() {
 
     for (std::size_t i = 0; i < outline.size(); ++i) {
         std::size_t heading_type = outline[i].first;
-        nstring heading_text = outline[i].second;
+        nstring heading_text =
+            currentDocument().get_line_text(outline[i].second);
 
         float x = margin_left + outline_heading_start_x[heading_type];
         float y = margin_top + 20 + i * 50;
@@ -433,19 +444,13 @@ void Editor::DrawOutline() {
                 std::size_t heading_idx =
                     (mousePos.y - margin_top - 20) / 50 + 1;
 
-                std::size_t heading_pos = outline[heading_idx - 1]
-                                              .second.substr(0, 1)
-                                              .to_string()[0] -
-                                          '0';
+                std::size_t line_idx = outline[heading_idx - 1].second;
 
-                std::cout << heading_idx << std::endl;
-
-                // std::size_t line_start =
-                //     currentDocument().rope().find_line_start(heading_pos -
-                //     1);
-
-                // currentDocument().set_cursor(
-                //     Cursor{static_cast< int >(line_start), 0});
+                // move cursor to the line
+                Cursor cursor{static_cast< int >(line_idx), 0};
+                currentDocument().turn_off_selecting();
+                currentDocument().set_cursor(cursor);
+                currentDocument().select_orig() = cursor;
             }
         }
     }
@@ -1156,6 +1161,17 @@ void Editor::PrepareKeybinds() {
                 return;
             }
             currentDocument().set_heading_current_line(Document::Heading::H5);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_SIX},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_heading_selected(Document::Heading::None);
+                return;
+            }
+            currentDocument().set_heading_current_line(Document::Heading::None);
         },
         false);
 

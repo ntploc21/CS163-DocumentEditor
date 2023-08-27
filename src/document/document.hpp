@@ -89,7 +89,8 @@ public:
 
 public:
     // pair< heading type, heading text >
-    std::vector< std::pair< std::size_t, nstring > > get_outline() const;
+    std::vector< std::pair< std::size_t, std::size_t > > get_outline() const;
+    nstring get_line_text(std::size_t line_idx) const;
 
 public:
     void underline_selected();
@@ -114,6 +115,8 @@ public:
     void set_font_size_selected(int size);
 
     void set_font_size(int size);
+
+    void set_line_font_size(std::size_t line_idx, int size);
 
     void set_font_id_selected(std::size_t id);
 

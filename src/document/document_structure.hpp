@@ -5,7 +5,7 @@
 
 namespace document {
     inline namespace HeadingLevel {
-        enum Level { None, H1, H2, H3, H4, H5, H6 };
+        enum Level { None, H1, H2, H3, H4, H5 };
     }  // namespace HeadingLevel
 
     inline namespace Alignment {
