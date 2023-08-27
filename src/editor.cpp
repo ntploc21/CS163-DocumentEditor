@@ -708,7 +708,7 @@ void Editor::LoadResources() {
 
     mDocumentFont->registerFont(info);
 
-    mDictionary->loadDatabase(constants::dictionary::default_database_path);
+    // mDictionary->loadDatabase(constants::dictionary::default_database_path);
 }
 
 void Editor::PrepareKeybinds() {
@@ -1001,35 +1001,10 @@ void Editor::PrepareKeybinds() {
 
             mMode = EditorMode::Normal;
             mPage = EditorPage::SpellCheck;
-
-            /*
-            bool valid_word = currentDocument().check_word_at_cursor();
-            std::vector< nstring > suggestions =
-                currentDocument().suggest_at_cursor();
-
-            std::cout << "The word is "
-                      << (valid_word ? "valid"
-                                     : "not exist in normal English vocabulary")
-                      << std::endl;
-
-            for (std::size_t i = 0; i < std::min(11, (int)suggestions.size());
-                 ++i) {
-                std::cout << i << ": " << suggestions[i] << std::endl;
-            }*/
         },
         false);
 
     /* Mode switching */
-    mKeybind.insert(
-        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_I},
-        [&]() {
-            if (mMode == EditorMode::Insert) {
-                mMode = EditorMode::Normal;
-            } else if (mMode == EditorMode::Normal) {
-                mMode = EditorMode::Insert;
-            }
-        },
-        false);
 
     mKeybind.insert(
         {KEY_LEFT_CONTROL, KEY_K},
@@ -1064,6 +1039,42 @@ void Editor::PrepareKeybinds() {
             }
         },
         false);
+
+    /* Document structure */
+    // Alignment
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_L},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().align_selected(Document::Alignment::Left);
+                return;
+            }
+            currentDocument().align_current_line(Document::Alignment::Left);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_E},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().align_selected(Document::Alignment::Center);
+                return;
+            }
+            currentDocument().align_current_line(Document::Alignment::Center);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_R},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().align_selected(Document::Alignment::Right);
+                return;
+            }
+            currentDocument().align_current_line(Document::Alignment::Right);
+        },
+        false);
+    // List
 }
 
 Editor::Editor() {}

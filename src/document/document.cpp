@@ -60,12 +60,7 @@ void Document::cursor_move_line(int delta) {
 void Document::cursor_move_column(int delta) {
     int lineLength = mRope.line_length(mCursor.line);
 
-    // int right_offset =
-    //     (mCursor.line + 1 == static_cast< int >(mRope.line_count()));
     mCursor.column = std::clamp(mCursor.column + delta, 0, lineLength);
-
-    std::cout << "! " << mCursor.line << " " << mCursor.column << " _ "
-              << lineLength << " v " << mRope.line_count() << std::endl;
 
     if (mCursor.column < 0) {
         mCursor.column = 0;
@@ -182,9 +177,13 @@ void Document::insert_at_cursor(const nstring& text) {
     std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
     mRope = mRope.insert(pos, text);
 
-    if (text.length() == 1 && text[0].getChar() == "\n" ||
-        text[0].getChar() == " ") {
+    if (text.length() == 1 &&
+        (text[0].codepoint() == int('\n') || text[0].codepoint() == int(' '))) {
         save_snapshot();
+
+        if (text[0].codepoint() == int('\n')) {
+            mDocumentStructure.insert_line(mCursor.line + 1);
+        }
     }
 
     for (std::size_t i = 0; i < text.length(); ++i) {
@@ -198,9 +197,13 @@ void Document::append_at_cursor(const nstring& text) {
     std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
     mRope = mRope.insert(pos, text);
 
-    if (text.length() == 1 && text[0].getChar() == "\n" ||
-        text[0].getChar() == " ") {
+    if (text.length() == 1 &&
+        (text[0].codepoint() == int('\n') || text[0].codepoint() == int(' '))) {
         save_snapshot();
+
+        if (text[0].codepoint() == int('\n')) {
+            mDocumentStructure.insert_line(mCursor.line + 1);
+        }
     }
 
     for (std::size_t i = 0; i < text.length(); ++i) {
@@ -215,6 +218,11 @@ void Document::erase_at_cursor() {
     if (pos == 0) return;
 
     cursor_move_prev_char();
+
+    if (mRope[pos - 1].codepoint() == int('\n')) {
+        mDocumentStructure.delete_line(mCursor.line + 1);
+    }
+
     mRope = mRope.erase(pos - 1, 1);
 
     processWordWrap();
@@ -226,11 +234,21 @@ void Document::erase_selected() {
     std::size_t end =
         mRope.index_from_pos(select_end().line, select_end().column);
 
+    // delete lines between start and end
+    std::size_t start_line = select_start().line + 1;
+    std::size_t end_line = select_end().line + 1;
+    mDocumentStructure.delete_lines(start_line, end_line);
+
     erase_range(start, end);
 }
 
 void Document::erase_range(std::size_t start, std::size_t end) {
     save_snapshot();
+
+    // delete lines between start and end
+    std::size_t start_line = mRope.pos_from_index(start).first + 1;
+    std::size_t end_line = mRope.pos_from_index(end).first + 1;
+    mDocumentStructure.delete_lines(start_line, end_line);
 
     mRope = mRope.erase(start, end - start);
 
@@ -256,17 +274,18 @@ void Document::copy_range(std::size_t start, std::size_t end) {
 }
 
 void Document::save_snapshot() {
-    mUndo.push_back({mRope, mCursor});
+    mUndo.push_back({mRope, mDocumentStructure.rope(), mCursor});
     mRedo.clear();
 }
 
 void Document::undo() {
     if (mUndo.empty()) return;
 
-    mRedo.push_back({mRope, mCursor});
-    const auto& [prev_rope, prev_cursor] = mUndo.back();
+    mRedo.push_back({mRope, mDocumentStructure.rope(), mCursor});
+    const auto& [prev_rope, prev_structure, prev_cursor] = mUndo.back();
 
     mRope = prev_rope;
+    mDocumentStructure.rope() = prev_structure;
     set_cursor(prev_cursor);
 
     mUndo.pop_back();
@@ -277,10 +296,11 @@ void Document::undo() {
 void Document::redo() {
     if (mRedo.empty()) return;
 
-    mUndo.push_back({mRope, mCursor});
-    const auto& [next_rope, next_cursor] = mRedo.back();
+    mUndo.push_back({mRope, mDocumentStructure.rope(), mCursor});
+    const auto& [next_rope, prev_structure, next_cursor] = mRedo.back();
 
     mRope = next_rope;
+    mDocumentStructure.rope() = prev_structure;
     set_cursor(next_cursor);
 
     mRedo.pop_back();
@@ -692,6 +712,24 @@ std::string Document::get_link_selected() const {
     return selected.getLink();
 }
 
+void Document::align_selected(Alignment align) {
+    save_snapshot();
+
+    for (std::size_t i = select_start().line; i <= select_end().line; ++i) {
+        mDocumentStructure.set_alignment(i, align);
+    }
+
+    processWordWrap();
+}
+
+void Document::align_current_line(Alignment align) {
+    save_snapshot();
+
+    mDocumentStructure.set_alignment(mCursor.line, align);
+
+    processWordWrap();
+}
+
 void Document::processWordWrap() {
     auto getFont = [&](const nchar& c) -> Font {
         if (c.isBold() && c.isItalic()) {
@@ -705,7 +743,6 @@ void Document::processWordWrap() {
     };
 
     nstring content = mRope.to_nstring() + nstring("?");
-    int length = content.length();
 
     bool wordWrap = 1;
     Rectangle rec = {0, 0,
@@ -724,112 +761,170 @@ void Document::processWordWrap() {
     enum { MEASURE_STATE = 0, DRAW_STATE = 1 };
     int state = wordWrap ? MEASURE_STATE : DRAW_STATE;
 
-    int startLine = -1;  // Index where to begin drawing (where a line begins)
-    int endLine = -1;    // Index where to stop drawing (where a line ends)
-    int lastk = -1;      // Holds last value of the character position
-
     float curLineHeight = 0.0f;
 
-    for (int i = 0, k = 0; i < length; i++, k++) {
-        Font charFont = getFont(content[i]);
-        const char* charText = content[i].getChar();
+    std::size_t cur_line_idx = 0;
+    int line_start = mRope.find_line_start(cur_line_idx);
+    int next_line_start;
 
-        // Vector2 charSize =
-        //     utils::measure_text(charFont, content[i].getChar(), 36, 2);
-        std::size_t charFontSize = content[i].getFontSize();
+    for (; cur_line_idx < mRope.line_count();
+         cur_line_idx++, line_start = next_line_start) {
+        next_line_start = mRope.find_line_start(cur_line_idx + 1);
 
-        if (content[i].isSuperscript() || content[i].isSubscript()) {
-            charFontSize /= 2;
-        }
+        int length = content.length();
 
-        float scaleFactor = charFontSize / (float)charFont.baseSize;
+        std::size_t align = mDocumentStructure.get_alignment(cur_line_idx);
 
-        curLineHeight =
-            std::max(curLineHeight,
-                     (charFont.baseSize + charFont.baseSize / 2) * scaleFactor);
+        std::vector< Vector2 > newDisplayPositions;
 
-        // Get next codepoint from byte string and glyph index in font
-        int codepointByteCount = 0;
-        int codepoint = GetCodepoint(charText, &codepointByteCount);
-        int index = GetGlyphIndex(charFont, codepoint);
+        int startLine =
+            line_start -
+            1;  // Index where to begin drawing (where a line begins)
+        int endLine =
+            line_start - 1;  // Index where to stop drawing (where a line ends)
+        int lastk =
+            line_start - 1;  // Holds last value of the character position
 
-        if (codepoint == 0x3f) codepointByteCount = 1;
-        codepointByteCount = 1;
-        i += (codepointByteCount - 1);
+        for (int i = line_start, k = line_start; i < next_line_start;
+             i++, k++) {
+            Font charFont = getFont(content[i]);
+            const char* charText = content[i].getChar();
 
-        float glyphWidth = 0;
-        if (codepoint != '\n') {
-            glyphWidth = (charFont.glyphs[index].advanceX == 0)
-                             ? charFont.recs[index].width * scaleFactor
-                             : charFont.glyphs[index].advanceX * scaleFactor;
+            std::size_t charFontSize = content[i].getFontSize();
 
-            if (i + 1 < length) glyphWidth = glyphWidth + spacing;
-        }
-
-        if (state == MEASURE_STATE) {
-            if ((codepoint == ' ') || (codepoint == '\t') ||
-                (codepoint == '\n'))
-                endLine = i;
-
-            if ((textOffsetX + glyphWidth) > rec.width) {
-                endLine = (endLine < 1) ? i : endLine;
-                if (i == endLine) endLine -= codepointByteCount;
-                if ((startLine + codepointByteCount) == endLine)
-                    endLine = (i - codepointByteCount);
-
-                state = !state;
-            } else if ((i + 1) == length) {
-                endLine = i;
-                state = !state;
-            } else if (codepoint == '\n')
-                state = !state;
-
-            if (state == DRAW_STATE) {
-                textOffsetX = 0;
-                i = startLine;
-                glyphWidth = 0;
-
-                // Save character position when we switch states
-                int tmp = lastk;
-                lastk = k - 1;
-                k = tmp;
+            if (content[i].isSuperscript() || content[i].isSubscript()) {
+                charFontSize /= 2;
             }
-        } else {
-            if (codepoint == '\n') {
-                displayPositions.push_back({textOffsetX, textOffsetY});
+
+            float scaleFactor = charFontSize / (float)charFont.baseSize;
+
+            curLineHeight = std::max(
+                curLineHeight,
+                (charFont.baseSize + charFont.baseSize / 2) * scaleFactor);
+
+            // Get next codepoint from byte string and glyph index in font
+            int codepointByteCount = 0;
+            int codepoint = GetCodepoint(charText, &codepointByteCount);
+            int index = GetGlyphIndex(charFont, codepoint);
+
+            if (codepoint == 0x3f) codepointByteCount = 1;
+            codepointByteCount = 1;
+            i += (codepointByteCount - 1);
+
+            float glyphWidth = 0;
+            if (codepoint != '\n') {
+                glyphWidth =
+                    (charFont.glyphs[index].advanceX == 0)
+                        ? charFont.recs[index].width * scaleFactor
+                        : charFont.glyphs[index].advanceX * scaleFactor;
+
+                if (i + 1 < length) glyphWidth = glyphWidth + spacing;
+            }
+
+            if (state == MEASURE_STATE) {
+                if ((codepoint == ' ') || (codepoint == '\t') ||
+                    (codepoint == '\n'))
+                    endLine = i;
+
+                if ((textOffsetX + glyphWidth) > rec.width) {
+                    endLine = (endLine < 1) ? i : endLine;
+                    if (i == endLine) endLine -= codepointByteCount;
+                    if ((startLine + codepointByteCount) == endLine)
+                        endLine = (i - codepointByteCount);
+
+                    state = !state;
+                } else if ((i + 1) == length) {
+                    endLine = i;
+                    state = !state;
+                } else if (codepoint == '\n')
+                    state = !state;
+
+                if (state == DRAW_STATE) {
+                    textOffsetX = 0;
+                    i = startLine;
+                    glyphWidth = 0;
+
+                    // Save character position when we switch states
+                    int tmp = lastk;
+                    lastk = k - 1;
+                    k = tmp;
+                }
             } else {
-                // When text overflows rectangle height limit, just stop
-                // drawing
-                if ((textOffsetY + charFont.baseSize * scaleFactor) >
-                    rec.height)
-                    break;
+                if (codepoint == '\n') {
+                    newDisplayPositions.push_back({textOffsetX, textOffsetY});
+                } else {
+                    if ((textOffsetY + charFont.baseSize * scaleFactor) >
+                        rec.height)
+                        break;
 
-                int offsetY = charFont.baseSize * scaleFactor;
+                    int offsetY = charFont.baseSize * scaleFactor;
 
-                displayPositions.push_back({
-                    textOffsetX, textOffsetY
-                    // + (content[i].isSubscript() ? offsetY : 0)
-                });
+                    newDisplayPositions.push_back({textOffsetX, textOffsetY});
+                }
+
+                if (wordWrap && (i == endLine)) {
+                    textOffsetY += curLineHeight;
+                    textOffsetX = 0;
+                    startLine = endLine;
+                    endLine = -1;
+                    glyphWidth = 0;
+                    k = lastk;
+
+                    state = !state;
+
+                    curLineHeight = 0.0f;
+                }
             }
 
-            if (wordWrap && (i == endLine)) {
-                textOffsetY += curLineHeight;
-                // textOffsetY +=
-                //     (charFont.baseSize + charFont.baseSize / 2) *
-                //     scaleFactor;
-                textOffsetX = 0;
-                startLine = endLine;
-                endLine = -1;
-                glyphWidth = 0;
-                k = lastk;
-
-                state = !state;
-
-                curLineHeight = 0.0f;
-            }
+            if ((textOffsetX != 0) || (codepoint != ' '))
+                textOffsetX += glyphWidth;  // avoid leading spaces
         }
 
-        if ((textOffsetX != 0) || (codepoint != ' '))
-            textOffsetX += glyphWidth;  // avoid leading spaces
+        int i = newDisplayPositions.size() - 1;
+        for (; i > 0 && align; --i) {
+            Vector2 pos = newDisplayPositions[i - 1];
+            if (pos.y == newDisplayPositions.back().y) continue;
+            break;
+        }
+
+        for (; i < newDisplayPositions.size(); ++i) {
+            Vector2 pos = newDisplayPositions[i];
+
+            // calculate character width
+            Font charFont = getFont(content[next_line_start - 1]);
+            const char* charText = content[next_line_start - 1].getChar();
+
+            std::size_t charFontSize =
+                content[next_line_start - 1].getFontSize();
+
+            if (content[next_line_start - 1].isSuperscript() ||
+                content[next_line_start - 1].isSubscript()) {
+                charFontSize /= 2;
+            }
+
+            float width =
+                utils::measure_text(charFont, charText, charFontSize, 2).x;
+
+            float lineWidth = newDisplayPositions.back().x + width - pos.x;
+
+            float offsetX = 0;
+
+            if (align == Alignment::Center) {
+                offsetX = (rec.width - lineWidth) / 2;
+            } else if (align == Alignment::Right) {
+                offsetX = rec.width - lineWidth;
+            }
+
+            for (int j = i; j < newDisplayPositions.size(); ++j) {
+                newDisplayPositions[j].x += offsetX;
+            }
+
+            break;
+        }
+
+        displayPositions.insert(displayPositions.end(),
+                                newDisplayPositions.begin(),
+                                newDisplayPositions.end());
     }
+    displayPositions.push_back({textOffsetX, textOffsetY});  // tmp
 }

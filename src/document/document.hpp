@@ -7,10 +7,18 @@
 #include "FontFactory.hpp"
 #include "cursor.hpp"
 #include "dictionary/dictionary.hpp"
+#include "document/document_structure.hpp"
 #include "raylib.h"
 #include "rope/rope.hpp"
 
 class Document {
+public:
+    using DocumentStructure = document::DocumentStructure;
+    // alias namespaces
+    using HeadingLevel = document::HeadingLevel::Level;
+    using Alignment = document::Alignment::Align;
+    using List = document::List::Type;
+
 public:
     Document();
     Document(std::string filename);
@@ -123,6 +131,7 @@ public:
 private:
     struct Snapshot {
         Rope rope;
+        Rope structure;
         Cursor cursor;
     };
     Rope mRope{};
@@ -144,6 +153,13 @@ private:
     DocumentFont* mDocFonts;
 
     bool mIsSelecting{false};
+
+public:
+    void align_selected(Alignment align);
+    void align_current_line(Alignment align);
+
+private:
+    DocumentStructure mDocumentStructure{};
 
 private:
     Color mTextColor{constants::document::default_text_color};
