@@ -1,5 +1,6 @@
 #include "FontFactory.hpp"
 
+#include <cstring>
 #include <iostream>
 
 static int *CodepointRemoveDuplicates(int *codepoints, int codepointCount,
