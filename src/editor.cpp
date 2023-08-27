@@ -131,9 +131,13 @@ void Editor::DrawEditorText() {
     std::size_t line_start = content.find_line_start(cur_line_idx);
     std::size_t next_line_start;
 
+    std::size_t listNumberCounter = 0;
+
     for (; cur_line_idx < content.line_count();
          cur_line_idx++, line_start = next_line_start) {
         next_line_start = content.find_line_start(cur_line_idx + 1);
+
+        std::size_t listType = currentDocument().get_list(cur_line_idx);
 
         float line_height = 0;
         float y = currentDocument().get_display_positions(line_start).y;
@@ -142,6 +146,30 @@ void Editor::DrawEditorText() {
             Vector2 charSize = utils::measure_text(fonts->Get("Arial"),
                                                    content[i].getChar(), 36, 2);
             line_height = std::max(line_height, charSize.y);
+        }
+
+        listNumberCounter =
+            (listType == Document::List::Number ? listNumberCounter : 0);
+
+        if (listType == Document::List::Bullet) {
+            Vector2 pos = currentDocument().get_display_positions(line_start);
+            pos.x -= 25;
+
+            DrawTextEx(fonts->Get("Arial"), "•",
+                       utils::sum(utils::get_init_pos(), pos), 36, 2,
+                       content[line_start].getColor());
+        } else if (listType == Document::List::Number) {
+            Vector2 pos = currentDocument().get_display_positions(line_start);
+            std::string idx = std::to_string(++listNumberCounter) + ".";
+            int width =
+                utils::measure_text(fonts->Get("Arial"), idx.c_str(), 36, 2.0f)
+                    .x;
+
+            pos.x = std::max(25.0f, pos.x - width - 5);
+
+            DrawTextEx(fonts->Get("Arial"), idx.c_str(),
+                       utils::sum(utils::get_init_pos(), pos), 36, 2,
+                       content[line_start].getColor());
         }
 
         // draw text
@@ -1074,7 +1102,96 @@ void Editor::PrepareKeybinds() {
             currentDocument().align_current_line(Document::Alignment::Right);
         },
         false);
+
+    // Headings
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_ONE},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_heading_selected(Document::Heading::H1);
+                return;
+            }
+            currentDocument().set_heading_current_line(Document::Heading::H1);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_TWO},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_heading_selected(Document::Heading::H2);
+                return;
+            }
+            currentDocument().set_heading_current_line(Document::Heading::H2);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_THREE},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_heading_selected(Document::Heading::H3);
+                return;
+            }
+            currentDocument().set_heading_current_line(Document::Heading::H3);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_FOUR},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_heading_selected(Document::Heading::H4);
+                return;
+            }
+            currentDocument().set_heading_current_line(Document::Heading::H4);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_FIVE},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_heading_selected(Document::Heading::H5);
+                return;
+            }
+            currentDocument().set_heading_current_line(Document::Heading::H5);
+        },
+        false);
+
     // List
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_SEVEN},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_list_selected(Document::List::Bullet);
+                return;
+            }
+            currentDocument().set_list_current_line(Document::List::Bullet);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_EIGHT},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_list_selected(Document::List::Number);
+                return;
+            }
+            currentDocument().set_list_current_line(Document::List::Number);
+        },
+        false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_NINE},
+        [&]() {
+            if (currentDocument().is_selecting()) {
+                currentDocument().set_list_selected(Document::List::None);
+                return;
+            }
+            currentDocument().set_list_current_line(Document::List::None);
+        },
+        false);
 }
 
 Editor::Editor() {}

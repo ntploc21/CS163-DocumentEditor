@@ -15,7 +15,7 @@ class Document {
 public:
     using DocumentStructure = document::DocumentStructure;
     // alias namespaces
-    using HeadingLevel = document::HeadingLevel::Level;
+    using Heading = document::HeadingLevel::Level;
     using Alignment = document::Alignment::Align;
     using List = document::List::Type;
 
@@ -157,6 +157,13 @@ private:
 public:
     void align_selected(Alignment align);
     void align_current_line(Alignment align);
+
+    void set_heading_selected(Heading level);
+    void set_heading_current_line(Heading level);
+
+    void set_list_selected(List list);
+    void set_list_current_line(List list);
+    std::size_t get_list(std::size_t line_idx) const;
 
 private:
     DocumentStructure mDocumentStructure{};

@@ -730,6 +730,46 @@ void Document::align_current_line(Alignment align) {
     processWordWrap();
 }
 
+void Document::set_heading_selected(Heading heading) {
+    save_snapshot();
+
+    for (std::size_t i = select_start().line; i <= select_end().line; ++i) {
+        mDocumentStructure.set_headings(i, heading);
+    }
+
+    processWordWrap();
+}
+
+void Document::set_heading_current_line(Heading heading) {
+    save_snapshot();
+
+    mDocumentStructure.set_headings(mCursor.line, heading);
+
+    processWordWrap();
+}
+
+void Document::set_list_selected(List list) {
+    save_snapshot();
+
+    for (std::size_t i = select_start().line; i <= select_end().line; ++i) {
+        mDocumentStructure.set_list(i, list);
+    }
+
+    processWordWrap();
+}
+
+void Document::set_list_current_line(List list) {
+    save_snapshot();
+
+    mDocumentStructure.set_list(mCursor.line, list);
+
+    processWordWrap();
+}
+
+std::size_t Document::get_list(std::size_t line_idx) const {
+    return mDocumentStructure.get_list(line_idx);
+}
+
 void Document::processWordWrap() {
     auto getFont = [&](const nchar& c) -> Font {
         if (c.isBold() && c.isItalic()) {
@@ -767,6 +807,8 @@ void Document::processWordWrap() {
     int line_start = mRope.find_line_start(cur_line_idx);
     int next_line_start;
 
+    std::size_t listNumberCounter = 0;
+
     for (; cur_line_idx < mRope.line_count();
          cur_line_idx++, line_start = next_line_start) {
         next_line_start = mRope.find_line_start(cur_line_idx + 1);
@@ -774,6 +816,25 @@ void Document::processWordWrap() {
         int length = content.length();
 
         std::size_t align = mDocumentStructure.get_alignment(cur_line_idx);
+        std::size_t listType = mDocumentStructure.get_list(cur_line_idx);
+
+        int x_indent =
+            (listType == List::None ? 0 : constants::document::list_indent);
+
+        if (listType == List::Number) {
+            std::string idx = std::to_string(++listNumberCounter) + ".";
+
+            int widthCounter =
+                utils::measure_text(mFonts->Get("Arial"), idx.c_str(), 36, 2.0f)
+                    .x;
+
+            x_indent = std::max(widthCounter + 30, x_indent);
+
+        } else {
+            listNumberCounter = 0;
+        }
+
+        textOffsetX = x_indent;
 
         std::vector< Vector2 > newDisplayPositions;
 
@@ -840,7 +901,7 @@ void Document::processWordWrap() {
                     state = !state;
 
                 if (state == DRAW_STATE) {
-                    textOffsetX = 0;
+                    textOffsetX = x_indent;
                     i = startLine;
                     glyphWidth = 0;
 
@@ -864,7 +925,7 @@ void Document::processWordWrap() {
 
                 if (wordWrap && (i == endLine)) {
                     textOffsetY += curLineHeight;
-                    textOffsetX = 0;
+                    textOffsetX = x_indent;
                     startLine = endLine;
                     endLine = -1;
                     glyphWidth = 0;
@@ -876,7 +937,7 @@ void Document::processWordWrap() {
                 }
             }
 
-            if ((textOffsetX != 0) || (codepoint != ' '))
+            if ((textOffsetX != x_indent) || (codepoint != ' '))
                 textOffsetX += glyphWidth;  // avoid leading spaces
         }
 
@@ -910,9 +971,9 @@ void Document::processWordWrap() {
             float offsetX = 0;
 
             if (align == Alignment::Center) {
-                offsetX = (rec.width - lineWidth) / 2;
+                offsetX = (rec.width - x_indent - lineWidth) / 2;
             } else if (align == Alignment::Right) {
-                offsetX = rec.width - lineWidth;
+                offsetX = rec.width - x_indent - lineWidth;
             }
 
             for (int j = i; j < newDisplayPositions.size(); ++j) {

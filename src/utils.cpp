@@ -66,6 +66,15 @@ namespace utils {
         system(command.c_str());
     }
 
+    std::size_t number_length(std::size_t number) {
+        std::size_t length = 0;
+        while (number > 0) {
+            number /= 10;
+            length++;
+        }
+        return length;
+    }
+
     // Draw textbox with specified position and size
     // bool DrawTextBox(Rectangle bounds, nstring& text, int textSize,
     //                  bool editMode) {

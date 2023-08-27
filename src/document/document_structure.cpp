@@ -4,7 +4,7 @@ namespace document {
     DocumentStructure::DocumentStructure() : mRope{"000\n"} {}
 
     void DocumentStructure::insert_line(std::size_t index) {
-        mRope = mRope.insert(index, "000\n");
+        mRope = mRope.insert(index * 4, "000\n");
     }
     void DocumentStructure::delete_line(std::size_t index) {
         std::size_t idx = mRope.find_line_start(index);

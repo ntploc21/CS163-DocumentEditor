@@ -36,6 +36,12 @@ namespace constants::document {
 
     constexpr Color default_background_color = WHITE;
 
+    /* heading font size */
+    constexpr int heading_font_size[] = {36, 32, 28, 24, 20, 16};
+
+    /* list */
+    constexpr int list_indent = 50;
+
 }  // namespace constants::document
 
 namespace constants::dictionary {
