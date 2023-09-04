@@ -44,6 +44,13 @@ std::size_t DocumentFont::registerFont(FontInfo info) {
     return id;
 }
 
+bool DocumentFont::hasFont(std::string id) const {
+    for (auto& font : mFonts) {
+        if (font.second.id == id) return true;
+    }
+    return false;
+}
+
 std::vector< std::string > DocumentFont::getFontList() const {
     std::vector< std::string > names;
     for (auto& font : mFonts) {

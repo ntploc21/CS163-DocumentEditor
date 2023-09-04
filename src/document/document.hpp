@@ -123,8 +123,6 @@ public:
 
     void set_line_font_size(std::size_t line_idx, int size);
 
-    void set_line_font_size(std::size_t line_idx, int size);
-
     void set_font_id_selected(std::size_t id);
 
     void set_font_id(std::size_t id);

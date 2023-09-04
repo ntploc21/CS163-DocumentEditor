@@ -319,6 +319,17 @@ void Document::save() {
 
     std::ofstream file(mFilename);
     std::size_t numLine = mRope.line_count();
+
+    std::vector< std::string > fonts = mDocFonts->getFontList();
+
+    file << fonts.size() << "\n";
+
+    for (std::size_t i = 0; i < fonts.size(); ++i) {
+        file << fonts[i] << "|" << mFonts->getPath(fonts[i]) << "\n";
+    }
+
+    file << numLine << "\n";
+
     for (std::size_t i = 0; i < numLine; ++i) {
         file << mRope.subnstr(mRope.index_from_pos(i, 0), mRope.line_length(i))
              << "\n";
@@ -332,6 +343,17 @@ void Document::save() {
     }
 
     for (std::size_t i = 0; i < mRope.length(); ++i) {
+        file << mRope[i].isBold() << " " << mRope[i].isItalic() << " "
+             << mRope[i].isUnderline() << " " << mRope[i].isStrikethrough()
+             << " " << mRope[i].isSuperscript() << " " << mRope[i].isSubscript()
+             << " ";
+
+        std::cout << i << " | " << mRope[i].isBold() << " "
+                  << mRope[i].isItalic() << " " << mRope[i].isUnderline() << " "
+                  << mRope[i].isStrikethrough() << " "
+                  << mRope[i].isSuperscript() << " " << mRope[i].isSubscript()
+                  << " " << std::endl;
+
         file << mRope[i].getColor().r << " " << mRope[i].getColor().g << " "
              << mRope[i].getColor().b << " " << mRope[i].getColor().a << " ";
 
@@ -346,17 +368,9 @@ void Document::save() {
 
         file << (mRope[i].hasLink() ? mRope[i].getLink() : "-") << " ";
 
-        file << mRope[i].getType() << " ";
+        file << mRope[i].getType();
 
         file << "\n";
-    }
-
-    std::vector< std::string > fonts = mDocFonts->getFontList();
-
-    file << fonts.size() << "\n";
-
-    for (std::size_t i = 0; i < fonts.size(); ++i) {
-        file << fonts[i] << "|" << mFonts->getPath(fonts[i]) << "\n";
     }
 
     file.close();
@@ -364,13 +378,112 @@ void Document::save() {
 
 void Document::load(std::string filename) {
     if (filename.empty()) return;
+
+    mFilename = filename;
+
+    std::ifstream file(mFilename);
+
+    if (!file.is_open()) return;
+    mRope = Rope{""};
+    mDocumentStructure = DocumentStructure{};
+    mCursor = Cursor{0, 0};
+    mSelectOrig = {-1, -1};
+    mUndo.clear(), mRedo.clear();
+
+    int numFont;
+    file >> numFont;
+
+    file.ignore();
+    for (std::size_t i = 0; i < numFont; ++i) {
+        std::string fontName, fontPath;
+        std::getline(file, fontName, '|');
+        std::getline(file, fontPath);
+        loadFont(fontName, fontPath);
+    }
+
+    std::size_t numLine;
+    file >> numLine;
+    file.ignore();
+    for (std::size_t i = 0; i < numLine; ++i) {
+        std::string line;
+        std::getline(file, line);
+        mRope = mRope.append(line + "\n");
+    }
+
+    for (std::size_t i = 0; i < numLine; ++i) {
+        char heading, alignment, list;
+        file >> heading >> alignment >> list;
+        if (i > 0) mDocumentStructure.insert_line(i);
+
+        mDocumentStructure.set_headings(i, heading - '0');
+        mDocumentStructure.set_alignment(i, alignment - '0');
+        mDocumentStructure.set_list(i, list - '0');
+    }
+    file.ignore();
+
+    for (std::size_t i = 0; i < mRope.length(); ++i) {
+        // if (mRope[i] == '\n') continue;
+
+        nchar c = mRope[i];
+
+        bool bold, italic, underline, strikethrough, superscript, subscript;
+
+        file >> bold >> italic >> underline >> strikethrough >> superscript >>
+            subscript;
+
+        if (bold) c.toggleBold();
+        if (italic) c.toggleItalic();
+        if (underline) c.toggleUnderline();
+        if (strikethrough) c.toggleStrikethrough();
+        if (superscript) c.toggleSuperscript();
+        if (subscript) c.toggleSubscript();
+
+        unsigned char r, g, b, a;
+        file >> r >> g >> b >> a;
+
+        Color color{r, g, b, a};
+        c.setColor(color);
+
+        file >> r >> g >> b >> a;
+        Color backgroundColor{r, g, b, a};
+        c.setBackgroundColor(backgroundColor);
+
+        int fontSize;
+        file >> fontSize;
+        c.setFontSize(fontSize);
+
+        std::size_t fontId;
+        file >> fontId;
+        c.setFontId(fontId);
+
+        std::string link;
+        file >> link;
+        if (link != "-") {
+            c.setLink(link);
+        }
+
+        int type;
+        file >> type;
+        c.setType(type);
+
+        mRope = mRope.replace(i, 1, c);
+    }
+
+    file.close();
+    mFilename = filename;
+
+    processWordWrap();
 }
 
 void Document::loadFont(const std::string& fontName, const std::string& path) {
+    if (mDocFonts->hasFont(fontName)) return;
+
     std::string extension = path.substr(path.find_last_of(".") + 1);
     if (extension != "ttf") return;
 
-    std::string name = path.substr(path.find_last_of("/") + 1);
+    std::string name =
+        path.substr(path.find_last_of("/") + 1,
+                    path.length() - path.find_last_of("/") - 1 - 4);
 
     std::string dir = path.substr(0, path.find_last_of("/"));
 
@@ -929,6 +1042,14 @@ void Document::processWordWrap() {
 
         int line_length = next_line_start - line_start;
         float curLineHeight = 0.0f;
+
+        std::cout << " - line: " << cur_line_idx << " | " << lineContent
+                  << std::endl;
+
+        std::cout << " - line length: " << line_length << std::endl;
+
+        std::cout << " - x: " << textOffsetX << " | y: " << textOffsetY
+                  << std::endl;
 
         int state = wordWrap ? MEASURE_STATE : DRAW_STATE;
 

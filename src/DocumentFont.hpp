@@ -35,6 +35,8 @@ public:
 
     std::size_t registerFont(FontInfo info);
 
+    bool hasFont(std::string id) const;
+
     std::vector< std::string > getFontList() const;
 
     void clear();
