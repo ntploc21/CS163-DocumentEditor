@@ -68,7 +68,8 @@ public:
     void undo();
     void redo();
     // std::optional< Rope > undo_top();
-    // void save();
+    void save();
+    void load(std::string filename);
     // void save_as();
 
     Vector2 get_display_positions(std::size_t index) const;
@@ -116,11 +117,19 @@ public:
 
     void set_font_size(int size);
 
+    int get_font_size() const;
+
+    int get_font_size_selected() const;
+
     void set_line_font_size(std::size_t line_idx, int size);
 
     void set_font_id_selected(std::size_t id);
 
     void set_font_id(std::size_t id);
+
+    std::size_t get_font_id() const;
+
+    std::size_t get_font_id_selected() const;
 
     void set_link_selected(std::string link);
 
@@ -170,6 +179,8 @@ public:
 
 private:
     DocumentStructure mDocumentStructure{};
+
+    void loadFont(const std::string& name, const std::string& path);
 
 private:
     Color mTextColor{constants::document::default_text_color};

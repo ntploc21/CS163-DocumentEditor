@@ -40,8 +40,8 @@ int Suggester::calculate_score(const nstring& keyword, const nstring& pattern) {
 
     int max_score = 0;
 
-    std::vector matrix(pattern.length() + 1,
-                       std::vector(keyword.length() + 1, 0));
+    std::vector< std::vector< int > > matrix(
+        pattern.length() + 1, std::vector< int >(keyword.length() + 1, 0));
 
     for (std::size_t i = 1; i <= pattern.length(); i++) {
         matrix[i][0] = indel * i;

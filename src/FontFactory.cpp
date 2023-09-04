@@ -51,13 +51,15 @@ void FontFactory::Load(const std::string &id, const std::string &filename) {
 
     // Load font containing all the provided codepoint glyphs
     // A texture font atlas is automatically generated
-    *font = LoadFontEx(filename.c_str(), 36, codepointsNoDups, 256);
+    *font = LoadFontEx(filename.c_str(), 128, codepointsNoDups, 256);
     SetTextureFilter(font->texture, TEXTURE_FILTER_ANISOTROPIC_16X);
 
     // Free codepoints, atlas has already been generated
     free(codepointsNoDups);
 
     InsertResource(id, std::move(font));
+
+    mFontPathMap.insert(std::make_pair(id, filename));
 }
 
 Font &FontFactory::Get(const std::string &id) {
@@ -70,6 +72,20 @@ const Font &FontFactory::Get(const std::string &id) const {
     auto found = mFontMap.find(id);
     assert(found != mFontMap.end());
     return *found->second.get();
+}
+
+std::string FontFactory::getPath(const std::string &id) const {
+    auto found = mFontPathMap.find(id);
+    assert(found != mFontPathMap.end());
+    return found->second;
+}
+
+void FontFactory::clear() {
+    for (auto &pair : mFontMap) {
+        UnloadFont(*pair.second);
+    }
+    mFontMap.clear();
+    mFontPathMap.clear();
 }
 
 void FontFactory::InsertResource(const std::string &id,

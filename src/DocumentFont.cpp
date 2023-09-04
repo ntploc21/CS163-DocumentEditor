@@ -43,3 +43,13 @@ std::size_t DocumentFont::registerFont(FontInfo info) {
     mFonts[id] = info;
     return id;
 }
+
+std::vector< std::string > DocumentFont::getFontList() const {
+    std::vector< std::string > names;
+    for (auto& font : mFonts) {
+        names.push_back(font.second.id);
+    }
+    return names;
+}
+
+void DocumentFont::clear() { mFonts.clear(); }

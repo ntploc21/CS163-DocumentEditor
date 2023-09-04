@@ -3,8 +3,14 @@
 
 #include "raylib.h"
 #include "text/nstring.hpp"
+#include "tinyfiledialogs.h"
 
 namespace utils {
+    std::string open_file_dialog(std::string title, std::string description,
+                                 std::vector< std::string > filters,
+                                 std::string defaultPath,
+                                 bool allowMultipleSelect);
+
     Vector2 measure_text(Font font, const char* text, int font_size,
                          int font_spacing);
 
@@ -20,9 +26,7 @@ namespace utils {
 
     std::size_t number_length(std::size_t number);
 
-    // Draw textbox with specified position and size
-    // bool TextBox(Rectangle bounds, nstring& text, int textSize, bool
-    // editMode);
+    int strToInt(const char* str);
 
     // Draw text using font inside rectangle limits
     void DrawTextBoxed(Font font, const char* text, Rectangle rec,

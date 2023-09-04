@@ -1,6 +1,7 @@
 #include "document.hpp"
 
 #include <algorithm>
+#include <fstream>
 #include <iomanip>
 
 #include "constants.hpp"
@@ -306,6 +307,89 @@ void Document::redo() {
     mRedo.pop_back();
 
     processWordWrap();
+}
+
+void Document::save() {
+    if (mFilename.empty() || mFilename == "Untitled") {
+        std::string filename =
+            utils::open_file_dialog("Save File", "", {"*.txt"}, "", false);
+        if (filename.empty()) return;
+        mFilename = filename;
+    }
+
+    std::ofstream file(mFilename);
+    std::size_t numLine = mRope.line_count();
+    for (std::size_t i = 0; i < numLine; ++i) {
+        file << mRope.subnstr(mRope.index_from_pos(i, 0), mRope.line_length(i))
+             << "\n";
+    }
+
+    for (std::size_t i = 0; i < numLine; ++i) {
+        file << mDocumentStructure.get_headings(i);
+        file << mDocumentStructure.get_alignment(i);
+        file << mDocumentStructure.get_list(i);
+        file << "\n";
+    }
+
+    for (std::size_t i = 0; i < mRope.length(); ++i) {
+        file << mRope[i].getColor().r << " " << mRope[i].getColor().g << " "
+             << mRope[i].getColor().b << " " << mRope[i].getColor().a << " ";
+
+        file << mRope[i].getBackgroundColor().r << " "
+             << mRope[i].getBackgroundColor().g << " "
+             << mRope[i].getBackgroundColor().b << " "
+             << mRope[i].getBackgroundColor().a << " ";
+
+        file << mRope[i].getFontSize() << " ";
+
+        file << mRope[i].getFontId() << " ";
+
+        file << (mRope[i].hasLink() ? mRope[i].getLink() : "-") << " ";
+
+        file << mRope[i].getType() << " ";
+
+        file << "\n";
+    }
+
+    std::vector< std::string > fonts = mDocFonts->getFontList();
+
+    file << fonts.size() << "\n";
+
+    for (std::size_t i = 0; i < fonts.size(); ++i) {
+        file << fonts[i] << "|" << mFonts->getPath(fonts[i]) << "\n";
+    }
+
+    file.close();
+}
+
+void Document::load(std::string filename) {
+    if (filename.empty()) return;
+}
+
+void Document::loadFont(const std::string& fontName, const std::string& path) {
+    std::string extension = path.substr(path.find_last_of(".") + 1);
+    if (extension != "ttf") return;
+
+    std::string name = path.substr(path.find_last_of("/") + 1);
+
+    std::string dir = path.substr(0, path.find_last_of("/"));
+
+    std::string boldPath = dir + "/" + name + " bold.ttf";
+    std::string italicPath = dir + "/" + name + " italic.ttf";
+    std::string boldItalicPath = dir + "/" + name + " bold italic.ttf";
+
+    mFonts->Load(fontName, path);
+    mFonts->Load(fontName + " Bold", boldPath);
+    mFonts->Load(fontName + " Italic", italicPath);
+    mFonts->Load(fontName + " Bold Italic", boldItalicPath);
+
+    FontInfo info{
+        fontName,
+        fontName + " Bold",
+        fontName + " Italic",
+        fontName + " Bold Italic",
+    };
+    mDocFonts->registerFont(info);
 }
 
 Vector2 Document::get_display_positions(std::size_t index) const {
@@ -614,6 +698,19 @@ void Document::set_font_size(int size) {
     mRope = mRope.replace(start, end - start, selected);
 }
 
+int Document::get_font_size() const {
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    return mRope[pos].getFontSize();
+}
+
+int Document::get_font_size_selected() const {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+
+    return mRope[start].getFontSize();
+}
+
 void Document::set_line_font_size(std::size_t line_idx, int size) {
     std::size_t start = mRope.index_from_pos(line_idx, 0);
     std::size_t end = mRope.index_from_pos(line_idx + 1, 0);
@@ -658,6 +755,19 @@ void Document::set_font_id(std::size_t id) {
     selected.setFontId(id);
 
     mRope = mRope.replace(start, end - start, selected);
+}
+
+std::size_t Document::get_font_id() const {
+    std::size_t pos = mRope.index_from_pos(mCursor.line, mCursor.column);
+
+    return mRope[pos].getFontId();
+}
+
+std::size_t Document::get_font_id_selected() const {
+    std::size_t start =
+        mRope.index_from_pos(select_start().line, select_start().column);
+
+    return mRope[start].getFontId();
 }
 
 void Document::set_link_selected(std::string link) {
@@ -782,7 +892,7 @@ void Document::processWordWrap() {
         return mDocFonts->get_font(c.getFontId());
     };
 
-    nstring content = mRope.to_nstring() + nstring("?");
+    nstring content = mRope.to_nstring();
 
     bool wordWrap = 1;
     Rectangle rec = {0, 0,
@@ -799,21 +909,28 @@ void Document::processWordWrap() {
 
     // Word/character wrapping mechanism variables
     enum { MEASURE_STATE = 0, DRAW_STATE = 1 };
-    int state = wordWrap ? MEASURE_STATE : DRAW_STATE;
-
-    float curLineHeight = 0.0f;
 
     std::size_t cur_line_idx = 0;
     int line_start = mRope.find_line_start(cur_line_idx);
     int next_line_start;
+    int length = content.length();
 
     std::size_t listNumberCounter = 0;
+
+    std::cout << "line count: " << mRope.line_count() << std::endl;
 
     for (; cur_line_idx < mRope.line_count();
          cur_line_idx++, line_start = next_line_start) {
         next_line_start = mRope.find_line_start(cur_line_idx + 1);
 
-        int length = content.length();
+        nstring lineContent =
+            mRope.subnstr(line_start, next_line_start - line_start) +
+            nstring("?");
+
+        int line_length = next_line_start - line_start;
+        float curLineHeight = 0.0f;
+
+        int state = wordWrap ? MEASURE_STATE : DRAW_STATE;
 
         std::size_t align = mDocumentStructure.get_alignment(cur_line_idx);
         std::size_t listType = mDocumentStructure.get_list(cur_line_idx);
@@ -839,21 +956,19 @@ void Document::processWordWrap() {
         std::vector< Vector2 > newDisplayPositions;
 
         int startLine =
-            line_start -
-            1;  // Index where to begin drawing (where a line begins)
-        int endLine =
-            line_start - 1;  // Index where to stop drawing (where a line ends)
-        int lastk =
-            line_start - 1;  // Holds last value of the character position
+            -1;  // Index where to begin drawing (where a line begins)
+        int endLine = -1;
+        // line_start - 1;  // Index where to stop drawing (where a line ends)
+        int lastk = -1;  // Holds last value of the character position
 
-        for (int i = line_start, k = line_start; i < next_line_start;
-             i++, k++) {
-            Font charFont = getFont(content[i]);
-            const char* charText = content[i].getChar();
+        for (int i = 0, k = 0; i < lineContent.length(); i++, k++) {
+            Font charFont = getFont(lineContent[i]);
+            const char* charText = lineContent[i].getChar();
 
-            std::size_t charFontSize = content[i].getFontSize();
+            std::size_t charFontSize = lineContent[i].getFontSize();
 
-            if (content[i].isSuperscript() || content[i].isSubscript()) {
+            if (lineContent[i].isSuperscript() ||
+                lineContent[i].isSubscript()) {
                 charFontSize /= 2;
             }
 
@@ -879,7 +994,7 @@ void Document::processWordWrap() {
                         ? charFont.recs[index].width * scaleFactor
                         : charFont.glyphs[index].advanceX * scaleFactor;
 
-                if (i + 1 < length) glyphWidth = glyphWidth + spacing;
+                if (i + 1 < line_length) glyphWidth = glyphWidth + spacing;
             }
 
             if (state == MEASURE_STATE) {
@@ -894,7 +1009,7 @@ void Document::processWordWrap() {
                         endLine = (i - codepointByteCount);
 
                     state = !state;
-                } else if ((i + 1) == length) {
+                } else if ((i + 1) == line_length) {
                     endLine = i;
                     state = !state;
                 } else if (codepoint == '\n')
@@ -940,6 +1055,8 @@ void Document::processWordWrap() {
             if ((textOffsetX != x_indent) || (codepoint != ' '))
                 textOffsetX += glyphWidth;  // avoid leading spaces
         }
+
+        // textOffsetY += curLineHeight;
 
         int i = newDisplayPositions.size() - 1;
         for (; i > 0 && align; --i) {
@@ -987,5 +1104,5 @@ void Document::processWordWrap() {
                                 newDisplayPositions.begin(),
                                 newDisplayPositions.end());
     }
-    displayPositions.push_back({textOffsetX, textOffsetY});  // tmp
+    displayPositions.push_back({textOffsetX, textOffsetY});
 }

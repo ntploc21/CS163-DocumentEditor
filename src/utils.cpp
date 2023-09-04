@@ -6,6 +6,21 @@
 #include "constants.hpp"
 
 namespace utils {
+    std::string open_file_dialog(std::string title, std::string description,
+                                 std::vector< std::string > filters,
+                                 std::string defaultPath,
+                                 bool allowMultipleSelect) {
+        char const** cFilters = new char const*[filters.size()];
+        for (int i = 0; i < filters.size(); i++) {
+            cFilters[i] = filters[i].c_str();
+        }
+        char* filename = tinyfd_openFileDialog(
+            title.c_str(), defaultPath.c_str(), filters.size(), cFilters,
+            description.c_str(), allowMultipleSelect ? 1 : 0);
+
+        delete[] cFilters;
+        return std::string(filename);
+    }
 
     Vector2 measure_text(Font font, const char* text, int font_size,
                          int spacing) {
@@ -73,6 +88,14 @@ namespace utils {
             length++;
         }
         return length;
+    }
+
+    int strToInt(const char* str) {
+        int res = 0;
+        for (int i = 0; str[i] != '\0'; ++i) {
+            res = res * 10 + str[i] - '0';
+        }
+        return res;
     }
 
     // Draw textbox with specified position and size

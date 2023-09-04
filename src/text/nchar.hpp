@@ -49,6 +49,7 @@ public:
     nchar& toggleType(nchar::Type type);
 
     int getType() const;
+    void setType(int type);
 
     void setFontSize(int size);
     int getFontSize() const;

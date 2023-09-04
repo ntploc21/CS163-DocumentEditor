@@ -46,6 +46,10 @@ public:
      */
     const Font& Get(const std::string& id) const;
 
+    std::string getPath(const std::string& id) const;
+
+    void clear();
+
 private:
     /**
      * @brief Insert the font.
@@ -64,5 +68,7 @@ private:
      * stored in the map.
      */
     std::map< std::string, std::unique_ptr< Font > > mFontMap;
+
+    std::map< std::string, std::string > mFontPathMap;
 };
 #endif  // FONTHOLDER_HPP

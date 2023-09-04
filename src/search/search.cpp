@@ -39,11 +39,9 @@ void Search::find_in_content(const Rope& text) {
     for (std::size_t i = mPattern.length(); i < n; i++) {
         if (z[i] == mPattern.length()) {
             mMatches.push_back(Cursor{cursor.line, cursor.column});
-            std::cout << "match at " << cursor.line << ", " << cursor.column
-                      << std::endl;
             mMatchIdx.push_back(i - mPattern.length() - 1);
-            i += mPattern.length() - 1;  // avoid overlapping matches
-            cursor.column += mPattern.length() - 1;
+            // i += mPattern.length() - 1;  // avoid overlapping matches
+            // cursor.column += mPattern.length() - 1;
         }
         nchar c = s[i];
         if (c == '\n') {

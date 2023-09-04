@@ -52,6 +52,15 @@ void Editor::Render() {
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(),
                   Color{249, 251, 253, 255});
 
+    // Draw file name at the center
+    Font font = fonts->Get("Arial");
+    Vector2 size =
+        utils::measure_text(font, currentDocument().filename().c_str(), 24,
+                            0);  // 24 is font size
+    DrawTextEx(fonts->Get("Arial"), currentDocument().filename().c_str(),
+               Vector2{(GetScreenWidth() - size.x) / 2, 10}, 24, 0,
+               Color{95, 99, 104, 255});
+
     DrawOutline();
 
     DrawEditor();
@@ -141,7 +150,7 @@ void Editor::DrawEditorText() {
 
         std::size_t listType = currentDocument().get_list(cur_line_idx);
 
-        float line_height = 0;
+        float line_height = 36;
         float y = currentDocument().get_display_positions(line_start).y;
 
         for (std::size_t i = line_start; i < next_line_start - 1; ++i) {
@@ -488,6 +497,9 @@ void Editor::DrawPage() {
         case EditorPage::SpellCheck:
             DrawSpellCheckPage(initX, initY);
             break;
+        case EditorPage::FontEditor:
+            DrawFontEditorPage(initX, initY);
+            break;
         default:
             break;
     }
@@ -732,20 +744,134 @@ void Editor::DrawSpellCheckPage(float initX, float initY) {
     // suggestions.clear();
 }
 
-void Editor::LoadResources() {
-    fonts->Load("Arial", "assets/fonts/SVN-Arial 3.ttf");
-    fonts->Load("Arial Bold", "assets/fonts/SVN-Arial 3 bold.ttf");
-    fonts->Load("Arial Italic", "assets/fonts/SVN-Arial 3 italic.ttf");
-    fonts->Load("Arial Bold Italic",
-                "assets/fonts/SVN-Arial 3 bold italic.ttf");
-    FontInfo info{
-        "Arial",
-        "Arial Bold",
-        "Arial Italic",
-        "Arial Bold Italic",
-    };
+void Editor::DrawFontEditorPage(float initX, float initY) {
+    static int fontSizeScrollIndex = 0;
+    static int fontFamilyScrollIndex = 0;
 
+    DrawTextEx(fonts->Get("Arial"), "Font Editor", Vector2{initX, initY - 22},
+               24, 0, Color{95, 99, 104, 255});
+
+    DrawLineEx(Vector2{initX, initY}, Vector2{(float)GetScreenWidth(), initY},
+               2.0f, LIGHTGRAY);
+
+    // draw font size
+    DrawTextEx(fonts->Get("Arial"), "Font Size", Vector2{initX, initY + 15}, 24,
+               0, Color{95, 99, 104, 255});
+
+    GuiSpinner(Rectangle{initX, initY + 40, 300, 50}, nullptr, &currentFontSize,
+               1, 100, true);
+
+    // use list view to list some common font size
+    std::string fontSize = "";
+    std::vector< int > commonFontSize = {8,  9,  10, 11, 12, 14, 16, 18,
+                                         20, 22, 24, 26, 28, 36, 48, 72};
+
+    for (std::size_t i = 0; i < commonFontSize.size(); ++i) {
+        fontSize += std::to_string(commonFontSize[i]) + ";";
+    }
+    fontSize = fontSize.substr(0, fontSize.length() - 1);
+
+    int selected = -1;
+
+    selected = GuiListView(Rectangle{initX, initY + 100, 300, 300},
+                           fontSize.c_str(), &fontSizeScrollIndex, selected);
+
+    if (selected != -1) {
+        currentFontSize = commonFontSize[selected];
+    }
+
+    bool saveFontSize =
+        GuiButton(Rectangle{initX, initY + 420, 300, 50}, "Save Font Size");
+
+    if (saveFontSize) {
+        currentDocument().save_snapshot();
+        if (currentDocument().is_selecting()) {
+            currentDocument().set_font_size_selected(currentFontSize);
+        } else {
+            currentDocument().set_font_size(currentFontSize);
+        }
+        currentDocument().processWordWrap();
+    }
+
+    // draw font family
+    DrawTextEx(fonts->Get("Arial"), "Font Family", Vector2{initX, initY + 475},
+               24, 0, Color{95, 99, 104, 255});
+
+    std::string fontFamily = "";
+    std::vector< std::string > fonts = mDocumentFont->getFontList();
+
+    for (std::size_t i = 0; i < fonts.size(); ++i) {
+        fontFamily += fonts[i] + ";";
+    }
+    fontFamily = fontFamily.substr(0, fontFamily.length() - 1);
+
+    currentFontFamily =
+        GuiListView(Rectangle{initX, initY + 500, 300, 300}, fontFamily.c_str(),
+                    &fontFamilyScrollIndex, currentFontFamily);
+
+    bool saveFontFamily =
+        GuiButton(Rectangle{initX, initY + 820, 300, 50}, "Save Font Family");
+
+    if (saveFontFamily) {
+        currentDocument().save_snapshot();
+
+        if (currentDocument().is_selecting()) {
+            currentDocument().set_font_id_selected(currentFontFamily);
+        } else {
+            currentDocument().set_font_id(currentFontFamily);
+        }
+        currentDocument().processWordWrap();
+    }
+
+    // import font
+    bool importFont =
+        GuiButton(Rectangle{initX, initY + 880, 300, 50}, "Import Font");
+
+    if (importFont) {
+        std::string path = utils::open_file_dialog(
+            "Select the default font file", "Select your font file", {"*.ttf"},
+            "", false);
+        if (path != "") {
+            std::string extension = path.substr(path.find_last_of(".") + 1);
+
+            std::string name = path.substr(path.find_last_of("/") + 1);
+
+            loadFont(name, path);
+        }
+    }
+}
+
+void Editor::loadFont(const std::string& fontName, const std::string& path) {
+    std::string extension = path.substr(path.find_last_of(".") + 1);
+    if (extension != "ttf") return;
+
+    std::string name =
+        path.substr(path.find_last_of("/") + 1,
+                    path.length() - path.find_last_of("/") - 1 - 4);
+
+    std::string dir = path.substr(0, path.find_last_of("/"));
+
+    std::string boldPath = dir + "/" + name + " bold.ttf";
+    std::string italicPath = dir + "/" + name + " italic.ttf";
+    std::string boldItalicPath = dir + "/" + name + " bold italic.ttf";
+
+    fonts->Load(fontName, path);
+    fonts->Load(fontName + " Bold", boldPath);
+    fonts->Load(fontName + " Italic", italicPath);
+    fonts->Load(fontName + " Bold Italic", boldItalicPath);
+
+    FontInfo info{
+        fontName,
+        fontName + " Bold",
+        fontName + " Italic",
+        fontName + " Bold Italic",
+    };
     mDocumentFont->registerFont(info);
+}
+
+void Editor::LoadResources() {
+    loadFont("Arial", "assets/fonts/SVN-Arial 3.ttf");
+    loadFont("Times New Roman", "assets/fonts/SVN-Times New Roman 2.ttf");
 
     // mDictionary->loadDatabase(constants::dictionary::default_database_path);
 }
@@ -1212,6 +1338,44 @@ void Editor::PrepareKeybinds() {
                 return;
             }
             currentDocument().set_list_current_line(Document::List::None);
+        },
+        false);
+
+    /* Font Editor */
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_LEFT_SHIFT, KEY_F},
+        [&]() {
+            if (mPage == EditorPage::FontEditor) {
+                mMode = EditorMode::Insert;
+                mPage = EditorPage::None;
+                return;
+            }
+            mMode = EditorMode::Normal;
+            mPage = EditorPage::FontEditor;
+
+            if (currentDocument().is_selecting()) {
+                currentFontSize = currentDocument().get_font_size_selected();
+                currentFontFamily = currentDocument().get_font_id_selected();
+            } else {
+                currentFontSize = currentDocument().get_font_size();
+                currentFontFamily = currentDocument().get_font_id();
+            }
+        },
+        false);
+
+    /* Save */
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_S}, [&]() { currentDocument().save(); }, false);
+
+    mKeybind.insert(
+        {KEY_LEFT_CONTROL, KEY_O},
+        [&]() {
+            std::string path = utils::open_file_dialog(
+                "Select the file you want to open", "Select your file",
+                {"*.txt"}, "", false);
+            if (path != "") {
+                currentDocument().load(path);
+            }
         },
         false);
 }

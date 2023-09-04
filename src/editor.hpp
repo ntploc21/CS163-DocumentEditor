@@ -114,6 +114,11 @@ private:
     std::vector< nstring > suggestions{};
 
     void DrawFontEditorPage(float initX, float initY);
+    int currentFontSize = constants::document::default_font_size;
+    int currentFontFamily = 0;
+
+private:
+    void loadFont(const std::string& name, const std::string& path);
 
 private:
     bool closed = false;

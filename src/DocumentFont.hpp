@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "FontFactory.hpp"
 #include "raylib.h"
@@ -33,6 +34,10 @@ public:
     const Font& get_bold_italic_font(std::size_t id) const;
 
     std::size_t registerFont(FontInfo info);
+
+    std::vector< std::string > getFontList() const;
+
+    void clear();
 
 private:
     std::map< std::size_t, FontInfo > mFonts;

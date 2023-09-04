@@ -165,6 +165,8 @@ bool nchar::isSuperscript() const { return mType & MASK(Superscript); }
 
 int nchar::getType() const { return mType; }
 
+void nchar::setType(int type) { mType = type; }
+
 void nchar::setFontSize(int size) { mFontSize = size; }
 
 int nchar::getFontSize() const { return mFontSize; }

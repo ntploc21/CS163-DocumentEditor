@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Document-Editor VERSION 0.1.0 LANGUAGES CXX)
+project(Document-Editor)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,13 +34,14 @@ endif()
 ######################################
 
 # Include libraries and source files
+
+# link_directories(lib)
 include_directories(src)
 add_executable(${PROJECT_NAME}
     src/constants.hpp
     src/raygui_impl.cpp
 
     src/main.cpp
-    src/utils.cpp
     
     src/editor.cpp
     
@@ -69,6 +70,10 @@ add_executable(${PROJECT_NAME}
 
     src/FontFactory.cpp
     src/DocumentFont.cpp
+
+    
+    src/utils.cpp
+    include/tinyfiledialogs.c
 )
 
 ######################################
